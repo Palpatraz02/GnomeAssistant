@@ -41,7 +41,7 @@ function getApiKey() {
 
     try {
         const [ok, stdout] = GLib.spawn_command_line_sync(
-            "gsettings get org.gnome.shell.extensions.ai-search-assistant api-key"
+            "gsettings get org.gnome.shell.extensions.gnome-assistant api-key"
         );
         if (ok) {
             const val = bytesToString(stdout).trim().replace(/^'|'$/g, '');
@@ -60,7 +60,7 @@ function getBaseUrl() {
 
     try {
         const [ok, stdout] = GLib.spawn_command_line_sync(
-            "gsettings get org.gnome.shell.extensions.ai-search-assistant base-url"
+            "gsettings get org.gnome.shell.extensions.gnome-assistant base-url"
         );
         if (ok) {
             const val = bytesToString(stdout).trim().replace(/^'|'$/g, '');

@@ -11,19 +11,23 @@ let source = fs.readFileSync(sourcePath, 'utf8');
 
 source = source
     .replace(/^import .*;\n/gm, '')
-    .replace('export default class AiSearchAssistantExtension extends Extension', 'class AiSearchAssistantExtension extends Extension');
+    .replace('export default class GnomeAssistantExtension extends Extension', 'class GnomeAssistantExtension extends Extension');
 
-source += '\nthis.AiSearchAssistantExtension = AiSearchAssistantExtension;\n';
+source += '\nthis.GnomeAssistantExtension = GnomeAssistantExtension;\n';
 
 const context = {
     Extension: class {},
     console,
+    // Imports are stripped; the name helper falls back to its default here.
+    assistantName: () => 'GNOME Assistant',
+    // disable() closes a shown area or window picker.
+    cancelPick: () => {},
 };
 vm.createContext(context);
 vm.runInContext(source, context, {filename: sourcePath});
 
 function createExtension(searchActive = false, searchText = '', options = {}) {
-    const extension = new context.AiSearchAssistantExtension();
+    const extension = new context.GnomeAssistantExtension();
     const controller = {searchActive};
     let setSearchEntryTextCalls = 0;
     let currentSearchText = searchText;
@@ -32,8 +36,6 @@ function createExtension(searchActive = false, searchText = '', options = {}) {
     Object.assign(extension, {
         _isAiMode: false,
         _isSubmitting: false,
-        _hasAiInputSentinel: false,
-        _previousSearchActive: null,
         _searchController: controller,
         _aiButton: null,
         _usesPrimaryIcon: false,
@@ -71,7 +73,7 @@ function createExtension(searchActive = false, searchText = '', options = {}) {
 }
 
 function createVisibilityExtension(searchText = '', hasAiInteraction = false) {
-    const extension = new context.AiSearchAssistantExtension();
+    const extension = new context.GnomeAssistantExtension();
     const searchActor = {
         visible: true,
         opacity: 255,
@@ -85,7 +87,6 @@ function createVisibilityExtension(searchText = '', hasAiInteraction = false) {
     Object.assign(extension, {
         _isAiMode: true,
         _isSubmitting: false,
-        _hasAiInteraction: hasAiInteraction,
         _aiView: aiView,
         _searchResultsActor: searchActor,
         _searchController: {searchActive: false},
@@ -118,7 +119,6 @@ function createVisibilityExtension(searchText = '', hasAiInteraction = false) {
 
     assert.equal(harness.extension._isAiMode, false);
     assert.equal(harness.controller.searchActive, false);
-    assert.equal(harness.extension._previousSearchActive, null);
 }
 
 {
@@ -139,36 +139,14 @@ function createVisibilityExtension(searchText = '', hasAiInteraction = false) {
 }
 
 {
-    const harness = createExtension(false, '_', {throwOnSetSearchText: false});
-    harness.extension._isAiMode = true;
-    harness.extension._hasAiInputSentinel = true;
-    harness.extension._previousSearchActive = false;
-    harness.extension._setAiMode(false);
-
-    assert.equal(harness.searchText, '');
-    assert.equal(harness.controller.searchActive, false);
-}
-
-{
-    const harness = createExtension(false, '_next question', {throwOnSetSearchText: false});
-    harness.extension._isAiMode = true;
-    harness.extension._hasAiInputSentinel = true;
-    harness.extension._previousSearchActive = false;
-    harness.extension._setAiMode(false);
-
-    assert.equal(harness.searchText, 'next question');
-    assert.equal(harness.controller.searchActive, true);
-}
-
-{
     const harness = createVisibilityExtension('');
     harness.extension._syncModeVisibility();
 
-    assert.equal(harness.aiView.visible, false);
+    assert.equal(harness.aiView.visible, true);
     assert.equal(harness.searchActor.visible, true);
-    assert.equal(harness.searchActor.opacity, 255);
-    assert.equal(harness.searchActor.reactive, true);
-    assert.equal(harness.extension._searchController.searchActive, false);
+    assert.equal(harness.searchActor.opacity, 0);
+    assert.equal(harness.searchActor.reactive, false);
+    assert.equal(harness.extension._searchController.searchActive, true);
 }
 
 {
@@ -183,27 +161,45 @@ function createVisibilityExtension(searchText = '', hasAiInteraction = false) {
 }
 
 {
-    const harness = createVisibilityExtension('', true);
-    harness.extension._syncModeVisibility();
+    const {extension, aiView, searchActor} = createVisibilityExtension('ask Codex');
+    const controller = {
+        _searchActive: false,
+        get searchActive() {
+            return this._searchActive;
+        },
+        _setSearchActive(active) {
+            this._searchActive = active;
+        },
+    };
+    extension._searchController = controller;
 
-    assert.equal(harness.aiView.visible, true);
-    assert.equal(harness.searchActor.opacity, 0);
-    assert.equal(harness.searchActor.reactive, false);
+    extension._syncModeVisibility();
+
+    assert.equal(controller.searchActive, true);
+    assert.equal(aiView.visible, true);
+    assert.equal(searchActor.opacity, 0);
+
+    extension._setOverviewSearchActive(false);
+    assert.equal(controller.searchActive, false);
 }
 
 {
-    const harness = createExtension(false, '_next question');
-    harness.extension._isAiMode = true;
+    const {extension} = createExtension();
+    const Clutter = context.Clutter = {
+        KEY_Super_L: 1,
+        KEY_Escape: 2,
+        EVENT_PROPAGATE: false,
+        EVENT_STOP: true,
+    };
+    extension._setAiMode(true);
 
-    assert.equal(harness.extension._extractPromptFromInput('_native query'), '_native query');
+    assert.equal(extension._handleAiModeKeyEvent({get_key_symbol: () => Clutter.KEY_Super_L}),
+        Clutter.EVENT_PROPAGATE);
+    assert.equal(extension._isAiMode, true);
 
-    harness.extension._hasAiInputSentinel = true;
-    assert.equal(harness.extension._extractPromptFromInput('_'), '');
-    assert.equal(harness.extension._extractPromptFromInput('_next question'), 'next question');
-    assert.equal(harness.extension._extractPromptFromInput('__literal'), '_literal');
-
-    harness.extension._isAiMode = false;
-    assert.equal(harness.extension._extractPromptFromInput('_native query'), '_native query');
+    assert.equal(extension._handleAiModeKeyEvent({get_key_symbol: () => Clutter.KEY_Escape}),
+        Clutter.EVENT_STOP);
+    assert.equal(extension._isAiMode, false);
 }
 
 (async () => {
@@ -211,13 +207,11 @@ function createVisibilityExtension(searchText = '', hasAiInteraction = false) {
     let queuedVisibilitySync = false;
     const messages = [];
     const responses = [];
-    const extension = new context.AiSearchAssistantExtension();
+    const extension = new context.GnomeAssistantExtension();
 
     Object.assign(extension, {
         _isAiMode: true,
         _isSubmitting: false,
-        _hasAiInteraction: false,
-        _hasAiInputSentinel: false,
         _aiView: {
             visible: false,
             addMessage(sender, text) {
@@ -226,6 +220,10 @@ function createVisibilityExtension(searchText = '', hasAiInteraction = false) {
             async generateResponse(prompt) {
                 responses.push(prompt);
             },
+            // Nothing secret in these prompts: the review lets them through.
+            async reviewOutgoing(prompt) {
+                return {proceed: true, prompt};
+            },
         },
         _getSearchEntryText() {
             return searchText;
@@ -233,6 +231,7 @@ function createVisibilityExtension(searchText = '', hasAiInteraction = false) {
         _setSearchEntryText(value) {
             searchText = String(value ?? '');
         },
+        _syncModeVisibility() {},
         _queueModeVisibilitySync() {
             queuedVisibilitySync = true;
         },
@@ -240,15 +239,13 @@ function createVisibilityExtension(searchText = '', hasAiInteraction = false) {
 
     await extension._submitAiPrompt();
 
-    assert.equal(searchText, '_');
+    assert.equal(searchText, '');
     assert.deepEqual(messages, [['You', 'ask ai']]);
     assert.deepEqual(responses, ['ask ai']);
     assert.equal(queuedVisibilitySync, true);
-    assert.equal(extension._hasAiInteraction, true);
-    assert.equal(extension._hasAiInputSentinel, true);
     assert.equal(extension._isSubmitting, false);
 
-    console.log('[PASS] AI mode keeps a sentinel input for answer visibility');
+    console.log('[PASS] Codex clears the entry and keeps the overview panel available');
 })().catch(error => {
     console.error(error);
     process.exitCode = 1;

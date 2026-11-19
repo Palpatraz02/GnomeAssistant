@@ -1,259 +1,280 @@
-/* Basic stylesheet for AI Search Assistant */
-
 .search-entry-ai-button {
     margin-left: 6px;
-    padding: 0 8px;
-    border-radius: 99px;
 }
 
-.search-entry-ai-button:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.search-entry-ai-button:checked {
-    background-color: rgba(255, 255, 255, 0.2);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-}
-
-.ai-search-entry-icon {
-    icon-size: 1.091em;
-    margin-top: 2px;
-    padding: 0 4px;
-}
-
-.ai-search-entry-icon.active {
-    color: #7ec8ff;
-}
-
-/* AI View Container */
-.ai-view-container {
-    border-radius: 24px;
-    margin: 20px;
-    padding: 24px;
-    spacing: 12px;
-}
-
-.ai-view-header-row {
-    padding-bottom: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.ai-view-header {
-    font-size: 1.5em;
-    font-weight: bold;
-    color: #ffffff;
-}
-
-.ai-new-session-button {
-    padding: 6px;
-    border-radius: 8px;
-}
-
-.ai-new-session-button:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.ai-new-session-button:active {
-    background-color: rgba(255, 255, 255, 0.16);
-}
-
-.ai-new-session-icon {
-    icon-size: 1.1em;
-    color: #ffffff;
-}
-
-.ai-view-tabs {
-    spacing: 6px;
-    padding: 2px;
-    border-radius: 10px;
-    background-color: rgba(255, 255, 255, 0.06);
-}
-
-.ai-tab-button {
-    padding: 7px 12px;
-    border-radius: 8px;
-    color: #c8d4df;
-}
-
-.ai-tab-button:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-}
-
-.ai-tab-button:checked {
-    color: #ffffff;
-    background-color: rgba(126, 200, 255, 0.22);
-    box-shadow: inset 0 0 0 1px rgba(126, 200, 255, 0.28);
-}
-
-.ai-view-scroll {
-    padding: 10px;
-}
-
-.ai-view-content {
-    spacing: 10px;
-}
-
-.ai-history-scroll {
-    padding-top: 8px;
-}
-
-.ai-history-content {
-    spacing: 10px;
-}
-
-.ai-history-summary {
-    color: #c8d4df;
-    font-size: 0.95em;
-    padding: 2px 4px 4px;
-}
-
-.ai-history-row {
-    padding: 0;
-    border-radius: 10px;
-}
-
-.ai-history-row:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-}
-
-.ai-history-row-content {
-    padding: 12px;
-    spacing: 5px;
-    border-radius: 10px;
-    background-color: rgba(255, 255, 255, 0.05);
-}
-
-.ai-history-title {
-    color: #ffffff;
-    font-weight: bold;
-    font-size: 1.06em;
-}
-
-.ai-history-meta {
-    color: #93a5b6;
-    font-size: 0.88em;
-}
-
-.ai-history-preview {
-    color: #d8e2eb;
-    font-size: 0.96em;
-}
-
-.ai-history-empty {
-    padding: 28px 12px;
-}
-
-.ai-history-empty-title {
-    color: #c8d4df;
-    font-size: 1.05em;
-}
-
-.ai-history-detail-header {
-    spacing: 10px;
-    padding-bottom: 8px;
-}
-
-.ai-history-back-button {
-    padding: 7px 10px;
-    border-radius: 8px;
-}
-
-.ai-history-back-button:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-}
-
-.ai-history-back-content {
-    spacing: 6px;
-    color: #ffffff;
-}
-
-.ai-history-back-icon {
-    icon-size: 1em;
-    color: #ffffff;
-}
-
-.ai-history-detail-title-box {
-    spacing: 3px;
-}
-
-.ai-history-detail-title {
-    color: #ffffff;
-    font-weight: bold;
-    font-size: 1.1em;
-}
-
-.ai-history-message-box {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-    padding: 12px;
-    spacing: 5px;
-}
-
-.ai-message-box {
-    background-color: rgba(255, 255, 255, 0.05);
+.ai-prompt-box:expanded {
     border-radius: 12px;
+}
+
+.ai-prompt-editor,
+.ai-prompt-editor:focus {
+    padding: 0;
+    margin: 0;
+    border: none;
+    box-shadow: none !important;
+    background-color: transparent;
+    color: inherit;
+}
+
+.ai-prompt-toggle,
+.ai-prompt-attach {
+    padding: 0;
+    margin: 0;
+    min-height: 0;
+    border: none;
+    border-radius: 6px;
+    background-color: transparent;
+}
+
+.ai-prompt-toggle:hover,
+.ai-prompt-attach:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+}
+
+.ai-prompt-attach:disabled {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.ai-prompt-input { spacing: 6px; }
+.ai-prompt-attachment-list { spacing: 6px; padding: 2px 0; }
+.ai-prompt-file {
+    spacing: 8px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+.ai-prompt-file-name { max-width: 180px; font-size: 12px; }
+.ai-prompt-file-size { font-size: 10px; color: rgba(255, 255, 255, 0.6); }
+.ai-prompt-file-remove { padding: 4px; border-radius: 6px; background-color: transparent; }
+.ai-prompt-file-remove:hover { background-color: rgba(255, 255, 255, 0.12); }
+
+/* Shell supplies surface colours, text, borders and control states through
+ * popup-menu-content, message, button, default and flat. Keep those theme
+ * roles intact so light, dark, high contrast and custom themes can adapt. */
+.ai-view-container {
+    spacing: 12px;
+    margin: 0 12px;
     padding: 12px;
-    spacing: 4px;
+    min-width: 0;
+    border-radius: 24px;
 }
 
-.ai-message-body {
-    spacing: 6px;
+.ai-view-header-row { padding: 2px 6px 6px; }
+.ai-view-header { font-size: 1.05em; font-weight: bold; padding: 0 6px; }
+.ai-header-actions, .ai-history-detail-header, .ai-approval-actions { spacing: 8px; }
+.ai-view-tabs {
+    spacing: 2px;
+    padding: 3px;
+    border-radius: 12px;
+    background-color: rgba(127, 127, 127, 0.12);
 }
+.ai-tab-content, .ai-resume-content { spacing: 6px; }
+.ai-config-menu { min-width: 22em; max-width: 32em; }
+.ai-config-current { max-width: 13em; }
 
-.ai-message-sender {
-    font-weight: bold;
-    color: #aaaaaa;
-    font-size: 0.9em;
+.ai-view-scroll { border-radius: 16px; padding: 12px; }
+.ai-view-content, .ai-history-content { spacing: 12px; }
+.ai-chat-welcome { padding: 48px 24px; spacing: 16px; max-width: 32em; }
+.ai-welcome-icon { color: -st-accent-color; }
+.ai-welcome-title { font-size: 1.65em; font-weight: bold; text-align: center; }
+.ai-welcome-description { text-align: center; }
+
+.ai-chat-bubble { max-width: 48em; padding: 12px 16px; spacing: 8px; }
+.ai-chat-bubble:ltr, .ai-history-row-content:ltr { text-align: left; }
+.ai-chat-bubble:rtl, .ai-history-row-content:rtl { text-align: right; }
+.ai-chat-bubble-user {
+    max-width: 36em;
+    font-weight: normal;
 }
+.ai-message-header { spacing: 8px; }
+.ai-message-sender { font-size: 0.9em; font-weight: bold; }
+.ai-message-body, .ai-approval { spacing: 8px; }
+.ai-copy-message { padding: 4px; min-height: 0; background-color: transparent; }
+.ai-chat-bubble-user .ai-copy-message { color: inherit; }
+.ai-copy-message:hover { background-color: rgba(127, 127, 127, 0.16); }
+.ai-message-status { padding: 0 16px; font-size: 0.85em; }
+.ai-typing-indicator { spacing: 5px; }
+.ai-typing-dot { width: 5px; height: 5px; margin: 6px 0; border-radius: 5px; background-color: -st-accent-color; }
 
-.ai-message-text {
-    color: #ffffff;
-    font-size: 1.1em;
+.ai-attachment-card {
+    margin-top: 8px;
+    padding: 16px;
+    spacing: 12px;
+    max-width: 520px;
+    border: 1px solid rgba(127, 127, 127, 0.24);
 }
+.ai-attachment-header { spacing: 12px; }
+.ai-attachment-icon, .ai-approval-icon { color: -st-accent-color; }
+.ai-attachment-name { font-weight: bold; }
+.ai-attachment-meta { font-size: 0.85em; }
+.ai-attachment-actions { spacing: 12px; }
+.ai-attachment-download { spacing: 6px; }
+.ai-upload-transfer { spacing: 12px; padding: 16px; border-color: st-transparentize(-st-accent-color, 0.5); }
+.ai-image-preview { padding: 4px; border-radius: 12px; background-color: rgba(127, 127, 127, 0.10); }
 
-.ai-message-list {
-    color: #ffffff;
-    font-size: 1.05em;
-    margin-left: 8px;
-}
+.ai-approval { border-color: st-transparentize(-st-accent-color, 0.4); }
+.ai-approval-heading { spacing: 8px; }
+.ai-approval-preview { max-height: 180px; }
+.ai-approval-caption { font-size: 0.9em; font-weight: bold; }
+.ai-approval-divider { height: 12px; }
+.ai-approval-actions { margin-top: 6px; }
 
-.ai-message-quote {
-    color: #d7e4f4;
-    font-size: 1.05em;
-    padding: 6px 10px;
-    border-left: 3px solid rgba(126, 200, 255, 0.8);
-    background-color: rgba(126, 200, 255, 0.08);
+.ai-history-summary, .ai-history-meta { font-size: 0.9em; }
+.ai-history-summary { padding: 4px 8px; }
+.ai-history-row { spacing: 8px; }
+.ai-history-row-content, .ai-history-detail-title-box { spacing: 6px; }
+.ai-history-title, .ai-history-detail-title { font-weight: bold; }
+.ai-history-empty { padding: 32px 16px; spacing: 16px; }
+.ai-history-empty-title { text-align: center; font-size: 1.15em; font-weight: bold; }
+.ai-history-delete { padding: 10px; color: #e01b24; }
+.ai-history-delete:hover { color: #e01b24; background-color: rgba(224, 27, 36, 0.14); }
+
+.ai-skill-menu { padding: 6px; min-width: 0; }
+.ai-skill-rows { spacing: 2px; }
+.ai-skill-option { padding: 10px 12px; border-radius: 8px; }
+.ai-skill-option-content { spacing: 12px; }
+.ai-skill-empty { padding: 10px 12px; font-size: 0.9em; }
+
+.ai-message-list { padding: 0 4px; }
+.ai-message-quote { padding: 4px 12px; border-left: 3px solid -st-accent-color; }
+.ai-message-code, .ai-approval-command {
+    padding: 10px 12px;
     border-radius: 8px;
-}
-
-.ai-message-code {
-    color: #e8f4ff;
-    font-size: 1em;
-    padding: 8px 10px;
-    background-color: rgba(18, 26, 38, 0.95);
-    border: 1px solid rgba(126, 200, 255, 0.25);
-    border-radius: 8px;
+    border: 1px solid rgba(127, 127, 127, 0.18);
+    background-color: rgba(127, 127, 127, 0.12);
     font-family: monospace;
 }
+.ai-message-rule { height: 1px; margin: 6px 0; background-color: rgba(127, 127, 127, 0.3); }
+.ai-message-table { border-radius: 8px; }
+.ai-message-table-cell { padding: 8px 10px; border: 1px solid rgba(127, 127, 127, 0.24); }
+.ai-message-table-header { font-weight: bold; background-color: st-transparentize(-st-accent-color, 0.9); }
+.ai-message-h1 { font-size: 1.4em; }
+.ai-message-h2 { font-size: 1.2em; }
+.ai-message-h3 { font-size: 1.1em; }
 
-.ai-message-h1 {
-    color: #ffffff;
-    font-size: 1.35em;
+.a2ui-surface, .a2ui-layout, .a2ui-field { spacing: 12px; }
+.a2ui-surface { padding: 8px 0; min-width: 24em; }
+.a2ui-card { spacing: 12px; padding: 16px; border: 1px solid rgba(127, 127, 127, 0.24); }
+.a2ui-text-h1 { font-size: 1.5em; font-weight: bold; }
+.a2ui-text-h2 { font-size: 1.25em; font-weight: bold; }
+.a2ui-text-h3 { font-size: 1.1em; font-weight: bold; }
+.a2ui-caption, .a2ui-text-caption { font-size: 0.9em; }
+/* Entries keep StEntry's native background, selection and focus ring. */
+.a2ui-entry { min-width: 0; }
+.a2ui-entry-multiline { min-height: 86px; }
+.a2ui-checkbox { padding: 6px 0; }
+.a2ui-text-area { height: 110px; }
+.a2ui-icon { color: -st-accent-color; -st-icon-style: symbolic; }
+.a2ui-divider { height: 1px; background-color: rgba(127, 127, 127, 0.3); margin: 6px 0; }
+.a2ui-divider-vertical { width: 1px; margin: 0 6px; background-color: rgba(127, 127, 127, 0.3); }
+.a2ui-error { color: #e01b24; font-size: 0.9em; }
+.a2ui-tabs { spacing: 12px; }
+.a2ui-tab-bar, .a2ui-media-controls { spacing: 8px; }
+.a2ui-dialog { min-width: 360px; }
+.a2ui-media { spacing: 12px; padding: 16px; border: 1px solid rgba(127, 127, 127, 0.24); }
+.a2ui-video-screen { background-color: #181818; border-radius: 8px; }
+/* The desktop context chip: tinted with the user's accent colour. */
+.ai-prompt-context {
+    padding: 5px 7px;
+    border: 1px solid st-transparentize(-st-accent-color, 0.4);
+    background-color: st-transparentize(-st-accent-color, 0.85);
 }
+.ai-prompt-context StIcon { color: -st-accent-color; }
+/* Shared view */
+.ai-shared-toggle:checked { color: -st-accent-color; background-color: st-transparentize(-st-accent-color, 0.8); }
+.ai-shared-toggle:checked:hover { background-color: st-transparentize(-st-accent-color, 0.7); }
+.ai-shared-card { spacing: 8px; padding: 12px 14px; }
+.ai-shared-header, .ai-shared-actions, .ai-shared-thumbs { spacing: 8px; }
+.ai-shared-header StIcon { color: -st-accent-color; }
+.ai-shared-subtitle { padding-top: 6px; }
+.ai-shared-thumb { spacing: 4px; }
+.ai-shared-thumb-button {
+    padding: 2px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    transition-duration: 150ms;
+}
+.ai-shared-thumb-button:hover { border-color: st-transparentize(-st-accent-color, 0.5); }
+.ai-shared-thumb-button:focus { border-color: -st-accent-color; }
+.ai-shared-json {
+    font-family: monospace;
+    font-size: 0.85em;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(127, 127, 127, 0.18);
+    background-color: rgba(127, 127, 127, 0.12);
+}
+.ai-shared-error { color: #e01b24; }
+/* A path sent by reference: outlined, as nothing is uploaded. */
+.ai-prompt-reference {
+    padding: 5px 7px;
+    border: 1px solid rgba(127, 127, 127, 0.45);
+    background-color: transparent;
+}
+.ai-prompt-reference StIcon { color: -st-accent-color; }
+.ai-attach-menu { min-width: 16em; }
 
-.ai-message-h2 {
-    color: #ffffff;
-    font-size: 1.26em;
-}
+/* Top-bar status while the overview is closed: the accent marks what needs
+   the user (an approval, an unread reply); working stays neutral. */
+.ai-status-indicator.ai-status-unread .system-status-icon,
+.ai-status-indicator.ai-status-failed .system-status-icon { color: -st-accent-color; }
+.ai-status-indicator.ai-status-approval { background-color: st-transparentize(-st-accent-color, 0.65); }
+.ai-status-indicator.ai-status-approval:hover,
+.ai-status-indicator.ai-status-approval:active { background-color: st-transparentize(-st-accent-color, 0.5); }
+.ai-status-label { font-weight: bold; }
 
-.ai-message-h3 {
-    color: #ffffff;
-    font-size: 1.2em;
+/* Actionable replies: code block actions, local path links and file diffs. */
+.ai-code-block { spacing: 2px; }
+.ai-code-actions { spacing: 2px; padding: 0 2px; }
+.ai-code-language { font-family: monospace; font-size: 0.85em; }
+.ai-code-action { padding: 2px 8px; min-height: 0; font-size: 0.85em; }
+.ai-path-link { spacing: 6px; }
+.ai-path-link StIcon { color: -st-accent-color; }
+.ai-approval-preview-diff { max-height: 360px; }
+.ai-diff { spacing: 4px; }
+.ai-diff-header { spacing: 8px; }
+.ai-diff-path { font-family: monospace; font-weight: bold; }
+.ai-diff-summary { font-size: 0.85em; }
+.ai-diff-lines {
+    padding: 4px 0;
+    border-radius: 8px;
+    border: 1px solid rgba(127, 127, 127, 0.18);
+    background-color: rgba(127, 127, 127, 0.06);
 }
+.ai-diff-line { padding: 0 10px; font-family: monospace; font-size: 0.9em; }
+.ai-diff-hunk { background-color: rgba(127, 127, 127, 0.14); font-size: 0.8em; }
+/* Added and removed lines use GNOME's success and destructive palette
+   colours, as an accent can itself be red or green; the +/− prefixes keep
+   the meaning without colour. */
+.ai-diff-added { background-color: st-transparentize(#2ec27e, 0.78); }
+.ai-diff-removed { background-color: st-transparentize(#e01b24, 0.82); }
 
-.ai-message-h4,
-.ai-message-h5,
-.ai-message-h6 {
-    color: #ffffff;
-    font-size: 1.12em;
+/* History search, titles and pins. The search entry sits above the scrolled
+   list; row actions match the delete button. */
+.ai-history-search { margin: 12px 12px 0; }
+.ai-history-action { padding: 10px; }
+.ai-history-pinned { color: -st-accent-color; }
+.ai-history-rename { margin: 6px 0; }
+
+/* Attach area / Attach window picker (screenCapture.js), drawn over the
+   desktop. The shade dims like GNOME's own lightboxes; the selection stays
+   undimmed and is outlined with the accent colour. */
+.ai-capture-shade { background-color: rgba(0, 0, 0, 0.45); }
+.ai-capture-frame { border: 2px solid -st-accent-color; }
+.ai-capture-window { background-color: st-transparentize(-st-accent-color, 0.85); }
+.ai-capture-tag {
+    padding: 4px 10px;
+    border-radius: 99px;
+    font-weight: bold;
+    font-feature-settings: "tnum";
+    color: -st-accent-fg-color;
+    background-color: -st-accent-color;
 }
+.ai-capture-hint { padding: 8px 16px; }
+
+/* Secret protection: the review card before sending, and notes in the Shared view. */
+.ai-privacy-review { spacing: 8px; padding: 12px 14px; border: 1px solid st-transparentize(-st-accent-color, 0.4); }
+.ai-privacy-review-heading, .ai-privacy-review-actions { spacing: 8px; }
+.ai-privacy-review-heading StIcon { color: -st-accent-color; }
+.ai-privacy-review-help { font-size: 0.9em; opacity: 0.8; }
+.ai-privacy-note { color: -st-accent-color; }

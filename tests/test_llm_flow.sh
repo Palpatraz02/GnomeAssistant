@@ -8,7 +8,7 @@ MODEL="gpt-5-mini"
 
 BASE_URL="${YUNWU_BASE_URL:-}"
 if [[ -z "$BASE_URL" ]]; then
-    BASE_URL="$(gsettings get org.gnome.shell.extensions.ai-search-assistant base-url 2>/dev/null | tr -d "'" || true)"
+    BASE_URL="$(gsettings get org.gnome.shell.extensions.gnome-assistant base-url 2>/dev/null | tr -d "'" || true)"
 fi
 if [[ -z "$BASE_URL" ]]; then
     BASE_URL="$DEFAULT_BASE_URL"
@@ -19,7 +19,7 @@ API_URL="${BASE_URL}${API_PATH}"
 
 API_KEY="${YUNWU_API_KEY:-${SILICONFLOW_API_KEY:-}}"
 if [[ -z "$API_KEY" ]]; then
-    API_KEY="$(gsettings get org.gnome.shell.extensions.ai-search-assistant api-key 2>/dev/null | tr -d "'" || true)"
+    API_KEY="$(gsettings get org.gnome.shell.extensions.gnome-assistant api-key 2>/dev/null | tr -d "'" || true)"
 fi
 
 if [[ -z "$API_KEY" ]]; then

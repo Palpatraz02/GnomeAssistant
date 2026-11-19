@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.gnome-assistant.shared">
+    <key name="system-prompt" type="s">
+      <default>"You are GNOME Assistant, available from the GNOME Shell overview. Help the user answer questions, understand their workspace, and complete tasks they request. Lead with the answer or outcome and keep replies concise. Use Markdown for steps, code, and file paths when it helps. When working in a project, follow its conventions and preserve the user's existing changes. Explain what you changed, what you verified, and anything you could not verify. Respect the permissions set by the user and ask for clarification when a missing detail would materially change the result."</default>
+      <summary>Assistant context for chats started from the extension</summary>
+    </key>
+    <key name="assistant-name" type="s">
+      <default>"GNOME Assistant"</default>
+      <summary>Assistant name</summary>
+      <description>The name shown for the assistant in the chat, the prompt, notifications and the Files menu.</description>
+    </key>
+    <key name="custom-instructions" type="s">
+      <default>""</default>
+      <summary>Personal instructions appended to the system prompt</summary>
+    </key>
+    <key name="auto-delegate" type="b">
+      <default>true</default>
+      <summary>Let the assistant delegate independent work automatically</summary>
+    </key>
+    <key name="acp-profile" type="s">
+      <default>""</default>
+      <summary>Selected ACP connection ID</summary>
+    </key>
+    <key name="acp-profiles" type="s">
+      <default>"[]"</default>
+      <summary>Local and SSH ACP connection profiles</summary>
+    </key>
+    <key name="acp-config-values" type="s">
+      <default>"{}"</default>
+      <summary>Preferred ACP session configuration values per connection</summary>
+    </key>
+    <key name="acp-config-state" type="s">
+      <default>"{}"</default>
+      <summary>Agent-advertised configuration for the preferences window</summary>
+    </key>
+    <key name="workspace-folder" type="s">
+      <default>""</default>
+      <summary>Absolute path to the local workspace</summary>
+    </key>
+    <key name="memory-enabled" type="b">
+      <default>true</default>
+      <summary>Save agent conversations</summary>
+      <description>When enabled, the extension keeps local transcripts. The connected agent manages its own session persistence.</description>
+    </key>
+    <key name="toggle-ai-mode" type="as">
+      <default>["&lt;Super&gt;x"]</default>
+      <summary>Toggle AI mode shortcut</summary>
+      <description>Global keyboard shortcut used to open the overview and toggle AI mode.</description>
+    </key>
+    <key name="show-status-indicator" type="b">
+      <default>true</default>
+      <summary>Show the assistant status in the top bar</summary>
+      <description>While a reply is running, waiting for an approval or ready to read, show an indicator in the top bar. Notifications are shown either way.</description>
+    </key>
+    <key name="privacy-protection" type="b">
+      <default>true</default>
+      <summary>Protect secrets and private windows</summary>
+      <description>Redact secrets from what is sent to the agent, ask before sending secrets you typed or attached, leave sensitive files out of folders, and black out private windows (and, with Tesseract installed, secret-looking text) in screenshots.</description>
+    </key>
+    <key name="privacy-hidden-apps" type="as">
+      <default>[]</default>
+      <summary>Apps never shown in screenshots</summary>
+      <description>App IDs whose windows are blacked out in screenshots sent to the agent, in addition to password managers and authenticator apps.</description>
+    </key>
+    <key name="problem-crashes" type="b">
+      <default>true</default>
+      <summary>Notify about crashes</summary>
+      <description>Offer to ask the assistant when a program you use crashes.</description>
+    </key>
+    <key name="problem-memory" type="b">
+      <default>true</default>
+      <summary>Notify about out-of-memory kills</summary>
+      <description>Offer to ask the assistant when a program is closed because memory ran out.</description>
+    </key>
+    <key name="problem-services" type="b">
+      <default>false</default>
+      <summary>Notify about failed services</summary>
+      <description>Offer to ask the assistant when a user or system service fails.</description>
+    </key>
+    <key name="problem-background" type="b">
+      <default>false</default>
+      <summary>Include background processes</summary>
+      <description>Also notify about crashes of helper processes that have no window.</description>
+    </key>
+    <key name="problem-ignored" type="as">
+      <default>[]</default>
+      <summary>Problems not to notify about</summary>
+      <description>Programs (program:NAME) and services (service:UNIT) the user chose not to be notified about.</description>
+    </key>
+    <key name="desktop-context-enabled" type="b">
+      <default>false</default>
+      <summary>Enable the desktop context shortcut</summary>
+      <description>When enabled, a separate shortcut captures a screenshot of each monitor and attaches it to the next message.</description>
+    </key>
+    <key name="desktop-context-screenshots" type="b">
+      <default>true</default>
+      <summary>Include screenshots in the desktop context</summary>
+      <description>A screenshot of each monitor. Requires an agent that accepts images.</description>
+    </key>
+    <key name="desktop-context-focused-window" type="b">
+      <default>true</default>
+      <summary>Include the focused window in the desktop context</summary>
+      <description>Title, application, monitor, workspace and position of the window with keyboard focus.</description>
+    </key>
+    <key name="desktop-context-windows" type="b">
+      <default>true</default>
+      <summary>Include open windows and workspaces in the desktop context</summary>
+      <description>Titles, applications and positions of open windows on every workspace, and the workspace count.</description>
+    </key>
+    <key name="desktop-context-pointer" type="b">
+      <default>true</default>
+      <summary>Include the mouse position in the desktop context</summary>
+      <description>Pointer position, its monitor and the window under it.</description>
+    </key>
+    <key name="desktop-context-selection" type="b">
+      <default>true</default>
+      <summary>Include selected text in the desktop context</summary>
+      <description>When enabled, the desktop context includes the text currently highlighted in an application (the primary selection).</description>
+    </key>
+    <key name="desktop-context-projects" type="b">
+      <default>true</default>
+      <summary>Include project directories in the desktop context</summary>
+      <description>Project directories inferred from window titles and terminal working directories.</description>
+    </key>
+    <key name="desktop-context-events" type="b">
+      <default>true</default>
+      <summary>Include recent desktop events in the desktop context</summary>
+      <description>Notifications, opened and closed windows, application crashes and logged errors from the last five minutes. Notifications and windows are kept in memory only while this is enabled.</description>
+    </key>
+    <key name="desktop-context-app-logs" type="b">
+      <default>true</default>
+      <summary>Include application logs in the desktop context</summary>
+      <description>Let the agent read recent journal logs of the applications whose windows are in the desktop context.</description>
+    </key>
+    <key name="desktop-context-device-status" type="b">
+      <default>true</default>
+      <summary>Include device status in the desktop context</summary>
+      <description>Network, audio, Bluetooth, power and session status of this computer.</description>
+    </key>
+    <key name="desktop-context-skip-local" type="b">
+      <default>true</default>
+      <summary>Skip details a local agent can read itself</summary>
+      <description>For agents running on this computer, leave out device status, crashes, logged errors and application logs, and tell the agent which commands read them. Agents over SSH always receive them.</description>
+    </key>
+    <key name="window-context-enabled" type="b">
+      <default>true</default>
+      <summary>Enable window context</summary>
+      <description>Offer "Ask" in every window's menu, and the window context shortcut, to attach one window's screenshot and context.</description>
+    </key>
+    <key name="open-with-window-context" type="as">
+      <default>["&lt;Super&gt;&lt;Shift&gt;w"]</default>
+      <summary>Open with window context shortcut</summary>
+      <description>Global keyboard shortcut that attaches the focused window's context, then opens the assistant.</description>
+    </key>
+    <key name="open-with-desktop-context" type="as">
+      <default>["&lt;Super&gt;&lt;Shift&gt;x"]</default>
+      <summary>Open with desktop context shortcut</summary>
+      <description>Global keyboard shortcut that captures the desktop, then opens the assistant with the capture attached.</description>
+    </key>
+  </schema>
+  <schema id="org.gnome.shell.extensions.gnome-assistant" path="/org/gnome/shell/extensions/gnome-assistant/"
+          extends="org.gnome.shell.extensions.gnome-assistant.shared">
+    <key name="codex-workspace" type="s">
+      <default>""</default>
+      <summary>Legacy workspace path used only during settings migration</summary>
+    </key>
+    <key name="settings-migrated" type="b">
+      <default>false</default>
+      <summary>Whether legacy extension preferences have been migrated</summary>
+    </key>
+  </schema>
+  <schema id="org.gnome.shell.extensions.ai-search-assistant" path="/org/gnome/shell/extensions/ai-search-assistant/"
+          extends="org.gnome.shell.extensions.gnome-assistant.shared">
+    <key name="codex-workspace" type="s">
+      <default>""</default>
+      <summary>Legacy workspace path used only during settings migration</summary>
+    </key>
+  </schema>
+</schemalist>

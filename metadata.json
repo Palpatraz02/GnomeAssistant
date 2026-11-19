@@ -1,15 +1,16 @@
 {
-    "name": "GNOME Shell AI Search Assistant",
-    "description": "Adds an AI chat mode to the GNOME Shell overview search. User prompts are sent to the configured OpenAI-compatible API provider, and optional memory stores chat history locally.",
-    "uuid": "ai-search-assistant@lerosua",
+    "name": "GNOME Assistant",
+    "description": "Connect to an ACP agent from the GNOME Shell overview. Stream replies, work in a selected folder, and review action approvals.",
+    "uuid": "gnome-assistant@faby02",
     "shell-version": [
         "45",
         "46",
         "47",
         "48",
-        "49"
+        "49",
+        "51"
     ],
-    "settings-schema": "org.gnome.shell.extensions.ai-search-assistant",
-    "url": "https://github.com/lerosua/gnome-shell-ai-search-assistant",
-    "version": 2
+    "settings-schema": "org.gnome.shell.extensions.gnome-assistant",
+    "url": "https://github.com/Palpatraz02/GnomeAssistant",
+    "version": 5
 }
