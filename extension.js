@@ -13,8 +13,8 @@ import { AiView } from './aiView.js';
 import {migrateAssistantData} from './state.js';
 import {assistantName} from './assistantName.js';
 import {privateApps, privateRegions, privateWindowLabel, protectScreenshot} from './screenPrivacy.js';
-import {COPIED_FILE_TYPES, copiedFilePaths} from './attachments.js';
-import {captureDesktop, DESKTOP_CONTEXT_PARTS, prepareDesktopContext, SelectionTracker} from './desktopContext.js';
+import {COPIED_FILE_TYPES, copiedFilePaths, pastedImageType} from './attachments.js';
+import {captureDesktop, DESKTOP_CONTEXT_PARTS, fitScreenshot, prepareDesktopContext, SelectionTracker} from './desktopContext.js';
 import {EventTracker} from './desktopEvents.js';
 import {cancelPick, pickArea, pickWindow} from './screenCapture.js';
 import {captureWindowContext} from './windowContext.js';
@@ -380,6 +380,12 @@ export default class GnomeAssistantExtension extends Extension {
                 await this._hideOverviewForCapture();
             if (this._aiView === view)
                 capture = await (mode === 'window' ? pickWindow() : pickArea());
+            if (capture?.window && getBoolean(this._settings, WINDOW_CONTEXT_ENABLED, true)) {
+                // The picked window's context, as from its window menu.
+                if (this._aiView === view && !this._refusePrivateWindow(capture.window))
+                    view.setDesktopContext(await captureWindowContext(capture.window, this._windowContextOptions()));
+                capture = null;
+            }
             if (capture && this._aiView === view)
                 capture = await this._protectCapture(capture);
             if (capture && this._aiView === view)
@@ -475,13 +481,7 @@ export default class GnomeAssistantExtension extends Extension {
         this._capturingContext = true;
         const draft = this._takeDraft();
         try {
-            const context = await captureWindowContext(window, {
-                parts: Object.fromEntries(DESKTOP_CONTEXT_PARTS.map(part =>
-                    [part, getBoolean(this._settings, DESKTOP_CONTEXT_KEYS[part], true)])),
-                events: this._eventTracker,
-                knownRoots: [getString(this._settings, 'workspace-folder')].filter(Boolean),
-                privacy: this._privacy(),
-            });
+            const context = await captureWindowContext(window, this._windowContextOptions());
             if (this._aiView !== view)
                 return;
             view.setDesktopContext(context);
@@ -657,6 +657,14 @@ export default class GnomeAssistantExtension extends Extension {
         const clipboard = St.Clipboard.get_default();
         const offered = clipboard.get_mimetypes(St.ClipboardType.CLIPBOARD) ?? [];
         const type = COPIED_FILE_TYPES.find(candidate => offered.includes(candidate));
+        const imageType = type ? null : pastedImageType(offered);
+        if (imageType && this._aiView) {
+            clipboard.get_content(St.ClipboardType.CLIPBOARD, imageType, (_clipboard, bytes) => {
+                if (bytes?.get_size())
+                    this._attachPastedImage(bytes);
+            });
+            return true;
+        }
         if (!type || !this._aiView)
             return false;
         const editor = this._promptEditor;
@@ -676,6 +684,28 @@ export default class GnomeAssistantExtension extends Extension {
             });
         });
         return true;
+    }
+
+    // A pasted image becomes an image chip, like an area screenshot: PNG, at
+    // most 1920 pixels per side, with secret-looking text blacked out.
+    async _attachPastedImage(bytes) {
+        const view = this._aiView;
+        try {
+            let image = await fitScreenshot(bytes);
+            let privacy = null;
+            if (this._privacy()) {
+                const result = await protectScreenshot(image);
+                image = result.image;
+                privacy = {hidden: result.hidden, secrets: result.secrets, ocr: result.ocr};
+            }
+            if (this._aiView !== view)
+                return;
+            const stamp = GLib.DateTime.new_now_local().format('%H%M%S');
+            view.addScreenCapture({name: `pasted-image-${stamp}.png`, bytes: image.bytes, privacy});
+        } catch (e) {
+            if (this._aiView === view)
+                Main.notifyError(this._assistantName(), `Could not attach the pasted image: ${e.message}`);
+        }
     }
 
     _handleAiModeKeyEvent(event) {
@@ -935,7 +965,7 @@ export default class GnomeAssistantExtension extends Extension {
             this._promptFileRemoveButtons = [];
             for (const file of files) {
                 const chip = new St.BoxLayout({style_class: 'ai-prompt-file'});
-                let icon = new Gio.ThemedIcon({name: file.context ? 'video-display-symbolic'
+                let icon = new Gio.ThemedIcon({name: file.windowContext ? 'focus-windows-symbolic' : file.context ? 'video-display-symbolic'
                     : file.folder ? 'folder-symbolic' : file.image ? 'image-x-generic-symbolic' : 'text-x-generic-symbolic'});
                 if (file.reference) {
                     chip.add_style_class_name('ai-prompt-reference');
@@ -1673,6 +1703,26 @@ export default class GnomeAssistantExtension extends Extension {
         this._windowShortcutRegistered = false;
     }
 
+    // What a window context includes: the Included Context switches.
+    _windowContextOptions() {
+        return {
+            parts: Object.fromEntries(DESKTOP_CONTEXT_PARTS.map(part =>
+                [part, getBoolean(this._settings, DESKTOP_CONTEXT_KEYS[part], true)])),
+            events: this._eventTracker,
+            knownRoots: [getString(this._settings, 'workspace-folder')].filter(Boolean),
+            privacy: this._privacy(),
+        };
+    }
+
+    // True, after telling the user, when a window belongs to a private app.
+    _refusePrivateWindow(window) {
+        const privacy = this._privacy();
+        const label = privacy ? privateWindowLabel(window, privacy.apps) : null;
+        if (label)
+            Main.notify(this._assistantName(), `${label} is kept private by your settings, so it was not attached.`);
+        return Boolean(label);
+    }
+
     // The shortcut: the focused window, or with the overview open (which
     // takes focus), the most recently used window on this workspace.
     _askAboutFocusedWindow() {
@@ -1687,13 +1737,8 @@ export default class GnomeAssistantExtension extends Extension {
             Main.notify(this._assistantName(), 'There is no window to attach. Focus a window, then press the shortcut again.');
             return;
         }
-        const privacy = this._privacy();
-        const label = privacy ? privateWindowLabel(window, privacy.apps) : null;
-        if (label) {
-            Main.notify(this._assistantName(), `${label} is kept private by your settings, so it was not attached.`);
-            return;
-        }
-        this._askAboutWindow(window);
+        if (!this._refusePrivateWindow(window))
+            this._askAboutWindow(window);
     }
 
     _removeContextShortcut() {

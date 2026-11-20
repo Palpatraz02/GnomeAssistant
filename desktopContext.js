@@ -17,6 +17,7 @@ const SELECTION_TIMEOUT_MS = 500;
 
 Gio._promisify(Shell.Screenshot.prototype, 'screenshot_area');
 Gio._promisify(GdkPixbuf.Pixbuf, 'new_from_stream_at_scale_async', 'new_from_stream_finish');
+Gio._promisify(GdkPixbuf.Pixbuf, 'new_from_stream_async', 'new_from_stream_finish');
 Gio._promisify(Shell.Screenshot, 'composite_to_stream');
 
 // Each part of the context can be turned off in Preferences. The instructions
@@ -283,8 +284,16 @@ export async function fitScreenshot(bytes) {
     const size = pngSize(data);
     if (size && size.width <= MAX_SCREENSHOT_EDGE && size.height <= MAX_SCREENSHOT_EDGE)
         return {bytes: data, ...size};
-    const pixbuf = await GdkPixbuf.Pixbuf.new_from_stream_at_scale_async(
-        Gio.MemoryInputStream.new_from_bytes(bytes), MAX_SCREENSHOT_EDGE, MAX_SCREENSHOT_EDGE, true, null);
+    // A large PNG is decoded straight at the smaller size. Other formats (pasted
+    // images) are decoded as they are, then only ever made smaller.
+    let pixbuf = size
+        ? await GdkPixbuf.Pixbuf.new_from_stream_at_scale_async(
+            Gio.MemoryInputStream.new_from_bytes(bytes), MAX_SCREENSHOT_EDGE, MAX_SCREENSHOT_EDGE, true, null)
+        : await GdkPixbuf.Pixbuf.new_from_stream_async(Gio.MemoryInputStream.new_from_bytes(bytes), null);
+    const scale = Math.min(1, MAX_SCREENSHOT_EDGE / pixbuf.get_width(), MAX_SCREENSHOT_EDGE / pixbuf.get_height());
+    if (scale < 1)
+        pixbuf = pixbuf.scale_simple(Math.max(1, Math.round(pixbuf.get_width() * scale)),
+            Math.max(1, Math.round(pixbuf.get_height() * scale)), GdkPixbuf.InterpType.BILINEAR);
     const [ok, encoded] = pixbuf.save_to_bufferv('png', [], []);
     if (!ok)
         throw new Error('Could not encode the screenshot.');

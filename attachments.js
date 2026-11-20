@@ -19,6 +19,18 @@ const NAME = /^[^/\\\x00-\x1f\x7f]{1,160}$/u;
 // GNOME's (also used by Nemo and Caja) and the standard URI list.
 export const COPIED_FILE_TYPES = ['x-special/gnome-copied-files', 'text/uri-list'];
 
+// A copied image (from a browser, an image viewer or a screenshot tool), as
+// the clipboard format to read, or null. Apps that put text on the clipboard
+// may add a picture of it (office suites do, for copied cells): then the text
+// is what the user means.
+const PASTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/bmp', 'image/tiff'];
+const TEXT_TYPES = ['text/plain', 'text/plain;charset=utf-8', 'UTF8_STRING', 'STRING', 'TEXT'];
+export function pastedImageType(offered = []) {
+    if (offered.some(type => TEXT_TYPES.includes(type)))
+        return null;
+    return PASTED_IMAGE_TYPES.find(type => offered.includes(type)) ?? null;
+}
+
 // Local paths from copied files: "copy" or "cut" then URIs for GNOME's
 // format, one URI per line with "#" comments for text/uri-list. Only file://
 // URIs count; links copied from other apps are not files.

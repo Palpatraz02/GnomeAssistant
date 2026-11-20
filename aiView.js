@@ -2203,7 +2203,8 @@ class AiView extends St.BoxLayout {
         const desktop = this._desktopContext;
         return [...(desktop ? [{id: desktop.id, name: desktop.scope === 'window' ? 'Window context' : 'Desktop context',
             size: desktopContextSize(desktop),
-            image: desktopContextScreenshots(desktop).length > 0, context: true, detail: desktopContextLabel(desktop)}] : []),
+            image: desktopContextScreenshots(desktop).length > 0, context: true, windowContext: desktop.scope === 'window',
+            detail: desktopContextLabel(desktop)}] : []),
         ...files, ...references];
     }
 
@@ -2377,8 +2378,9 @@ class AiView extends St.BoxLayout {
         manager.addMenu(menu);
         menu.addAction('Attach file…', () => this._queueLocalFile(), 'mail-attachment-symbolic');
         menu.addAction('Attach area…', () => this.emit('screen-capture-requested', 'area'), 'screenshot-ui-area-symbolic');
-        menu.addAction('Attach window…', () => this.emit('screen-capture-requested', 'window'),
-            'screenshot-ui-window-symbolic');
+        // A picked window comes with its context, unless window context is off.
+        menu.addAction(this._getSettingBoolean('window-context-enabled', true) ? 'Attach window context…' : 'Attach window…',
+            () => this.emit('screen-capture-requested', 'window'), 'screenshot-ui-window-symbolic');
         menu.addAction('Attach desktop context', () => this.emit('desktop-context-requested'), 'video-display-symbolic');
         if (this._isLocalProfile()) {
             menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());

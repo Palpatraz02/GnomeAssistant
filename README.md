@@ -268,9 +268,10 @@ notification settings for GNOME Shell apply. They are not stored by the extensio
 The paperclip in the prompt opens a menu:
 
 - **Attach file…** sends a file with your next message (see the limits below).
-- **Attach area…** and **Attach window…** close the overview so you can pick
-  part of the screen (see below); the picked image is attached and the
-  assistant reopens with your typed prompt.
+- **Attach area…** and **Attach window context…** close the overview so you
+  can pick part of the screen or a window (see below); the picked area or the
+  window's context is attached and the assistant reopens with your typed
+  prompt.
 - **Attach desktop context** closes the overview, captures your desktop as
   described below, and reopens the assistant with the capture attached.
 - **Reference a file…** and **Reference a folder…** (agents running on this
@@ -281,16 +282,25 @@ You can also copy files or folders in Files (or any file manager) and paste
 them into the prompt with Ctrl+V. They become references for agents on this
 computer, and attachments for agents over SSH: folders are sent as one archive
 (see below).
-Pasting ordinary text works as usual.
+Copied images (from a browser, an image viewer or a screenshot tool) are
+attached the same way with Ctrl+V, as an image chip: converted to PNG, shrunk to
+at most 1920 pixels per side like screenshots (never enlarged), and checked for
+secret-looking text with OCR when screenshot protection is on. When an app
+copies text together with a picture of it, as office suites do for cells, the
+text is pasted. Pasting ordinary text works as usual.
 
 ### Attach an area or a window
 
 **Attach area…** dims the screen: drag a rectangle (across monitors if you
 like; its size is shown next to it) and release, or press **Enter**, to
-attach it. **Attach window…** highlights the window under the pointer; click
-to attach it. It captures the window's own content, even parts covered by
-other windows, without the shadow around it. **Esc** or a right-click
-cancels and brings the assistant back unchanged.
+attach it. **Attach window context…** highlights the window under the pointer;
+click to attach a **Window context** for it, the same as **Ask …** in its window
+menu (see **Ask about a window**): its screenshot, details, project folder,
+recent events and logs. The screenshot is the window's own content, even parts
+covered by other windows, without the shadow around it. With window context
+turned off (Preferences › Context), the entry is **Attach window…** and attaches
+only the screenshot. **Esc** or a right-click cancels and brings the assistant
+back unchanged.
 
 The picker is removed before anything is captured, so the image shows only
 what you selected, at the screen's full resolution, downscaled like desktop

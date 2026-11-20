@@ -1051,7 +1051,7 @@ export default class extends Extension {
                 assert(menu?.isOpen,'The prompt focus fix intercepted the attachment button');
                 const items=menu._getMenuItems().filter(item=>!(item instanceof PopupMenu.PopupSeparatorMenuItem));
                 const labels=items.map(item=>item.label.text);
-                assert(JSON.stringify(labels)===JSON.stringify(['Attach file…','Attach area…','Attach window…','Attach desktop context',
+                assert(JSON.stringify(labels)===JSON.stringify(['Attach file…','Attach area…','Attach window context…','Attach desktop context',
                     'Reference a file…','Reference a folder…']),'Unexpected attach menu for a local agent: '+JSON.stringify(labels));
                 await capture('attach-menu');
                 items[0].activate(Clutter.get_current_event());for(let i=0;i<3;i++)await pause();
@@ -1138,6 +1138,29 @@ export default class extends Extension {
             assert(assistant._getSearchEntryText()===draft+'xy','Pasting text stopped working: '+
                 JSON.stringify(assistant._getSearchEntryText()));
             assistant._setSearchEntryText(draft);for(let i=0;i<4;i++)await pause();
+            // A copied image becomes an image chip: PNG, shrunk to 1920 pixels
+            // at most, never enlarged; the prompt text is left alone.
+            const {default:GdkPixbuf}=await import('gi://GdkPixbuf');
+            const encoded=(width,height,format)=>{const image=GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB,false,8,width,height);
+                image.fill(0x3366ccff);return image.save_to_bufferv(format,[],[])[1];};
+            const pastedImage=async(type,bytes)=>{
+                const before=attachView._queuedFiles.length;
+                clipboard.set_content(St.ClipboardType.CLIPBOARD,type,new GLib.Bytes(bytes));
+                await paste();
+                for(let i=0;i<60 && attachView._queuedFiles.length===before;i++)await pause();
+                const file=attachView._queuedFiles.at(-1);
+                const image=file?.bytes&&GdkPixbuf.Pixbuf.new_from_stream(Gio.MemoryInputStream.new_from_bytes(new GLib.Bytes(file.bytes)),null);
+                return {file,size:image?[image.get_width(),image.get_height()]:null,png:file?.bytes?.[1]===80};
+            };
+            const wide=await pastedImage('image/png',encoded(2400,100,'png'));
+            assert(/^pasted-image-\d{6}\.png$/.test(wide.file?.name) && wide.file.image && wide.png &&
+                JSON.stringify(wide.size)==='[1920,80]' && assistant._getSearchEntryText()===draft,
+                'A pasted image was not attached at a fitting size: '+JSON.stringify({name:wide.file?.name,size:wide.size}));
+            attachView.removeQueuedAttachment(wide.file.id);
+            const photo=await pastedImage('image/jpeg',encoded(300,200,'jpeg'));
+            assert(photo.png && JSON.stringify(photo.size)==='[300,200]','A small pasted JPEG was enlarged or not converted: '+
+                JSON.stringify(photo.size));
+            attachView.removeQueuedAttachment(photo.file.id);
             // "Ask GNOME Assistant" in Files calls AskAbout over D-Bus, while
             // the overview is closed.
             const askAbout=uris=>new Promise((resolve,reject)=>Gio.DBus.session.call('org.gnome.Shell',
@@ -1752,8 +1775,10 @@ export default class extends Extension {
             await key(Clutter.KEY_Escape);
             await restored('Escape did not restore the assistant');
             assert(view._queuedFiles.length===queued+1,'Cancelling an area still attached something');
-            // Window: the window under the pointer is highlighted; a click picks it.
-            await choose('Attach window…');
+            // Window: the window under the pointer is highlighted; a click picks
+            // it and attaches its window context.
+            view.setDesktopContext(null);
+            await choose('Attach window context…');
             const window=targetWindow(),frame=window.get_frame_rect();
             await move(frame.x+frame.width/2,frame.y+frame.height/2);
             assert(activeCapturePicker().selection===window,'The window under the pointer was not highlighted');
@@ -1763,17 +1788,39 @@ export default class extends Extension {
             await capture('capture-window');
             await press(Clutter.ButtonState.PRESSED);await press(Clutter.ButtonState.RELEASED);
             await restored('Attaching a window did not restore the assistant with the draft');
-            const picked=view._queuedFiles.find(file=>file.name==='Capture-target.png');
-            assert(picked && JSON.stringify(pngSize(picked.bytes))===JSON.stringify([frame.width,frame.height]),
-                'The window was not attached at its frame size: '+JSON.stringify({names:view._queuedFiles.map(file=>file.name),
-                    size:picked&&pngSize(picked.bytes),frame:[frame.width,frame.height]}));
+            const context=view._desktopContext;
+            await context?.protection;
+            const shot=context?.monitors[0];
+            assert(context?.scope==='window' && context.focusedWindow.title==='Capture/target' &&
+                shot.image.width===frame.width && shot.image.height===frame.height && view._queuedFiles.length===queued+1 &&
+                view.queuedAttachments.some(item=>item.id===context.id && item.name==='Window context'),
+                'The picked window was not attached as a window context: '+JSON.stringify({scope:context?.scope,
+                    title:context?.focusedWindow?.title,size:[shot?.image?.width,shot?.image?.height],frame:[frame.width,frame.height],
+                    files:view._queuedFiles.map(file=>file.name)}));
+            const chipIcons=all(assistant._promptFileRow).filter(actor=>actor instanceof St.Icon).map(icon=>icon.gicon?.get_names?.()?.[0]);
+            assert(chipIcons.includes('focus-windows-symbolic'),'The window context chip lacks its window icon: '+chipIcons);
             await capture('capture-chips');
-            // A right-click cancels too.
-            await choose('Attach window…');
-            await press(Clutter.ButtonState.PRESSED,Clutter.BUTTON_SECONDARY);await press(Clutter.ButtonState.RELEASED,Clutter.BUTTON_SECONDARY);
-            await restored('Right-click did not cancel the window picker');
-            assert(view._queuedFiles.length===queued+2,'Cancelling a window still attached something');
-            view.removeQueuedAttachment(area.id);view.removeQueuedAttachment(picked.id);
+            view.removeQueuedAttachment(context.id);
+            // With window context turned off, it attaches the window's screenshot.
+            assistant._settings.set_boolean('window-context-enabled',false);
+            try {
+                await choose('Attach window…');
+                await move(frame.x+frame.width/2,frame.y+frame.height/2);
+                await press(Clutter.ButtonState.PRESSED);await press(Clutter.ButtonState.RELEASED);
+                await restored('Attaching a window screenshot did not restore the assistant with the draft');
+                const picked=view._queuedFiles.find(file=>file.name==='Capture-target.png');
+                assert(picked && JSON.stringify(pngSize(picked.bytes))===JSON.stringify([frame.width,frame.height]) && !view._desktopContext,
+                    'The window was not attached at its frame size: '+JSON.stringify({names:view._queuedFiles.map(file=>file.name),
+                        size:picked&&pngSize(picked.bytes),frame:[frame.width,frame.height]}));
+                // A right-click cancels too.
+                await choose('Attach window…');
+                await press(Clutter.ButtonState.PRESSED,Clutter.BUTTON_SECONDARY);await press(Clutter.ButtonState.RELEASED,Clutter.BUTTON_SECONDARY);
+                await restored('Right-click did not cancel the window picker');
+                assert(view._queuedFiles.length===queued+2,'Cancelling a window still attached something');
+                view.removeQueuedAttachment(area.id);view.removeQueuedAttachment(picked.id);
+            } finally {
+                assistant._settings.reset('window-context-enabled');
+            }
         } finally {
             target.force_exit();
             await wait(()=>!targetWindow(),'The capture target window did not close');
