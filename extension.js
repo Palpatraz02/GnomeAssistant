@@ -18,6 +18,7 @@ import {captureDesktop, DESKTOP_CONTEXT_PARTS, prepareDesktopContext, SelectionT
 import {EventTracker} from './desktopEvents.js';
 import {cancelPick, pickArea, pickWindow} from './screenCapture.js';
 import {captureWindowContext} from './windowContext.js';
+import {availableCommands, commandBeingUsed, commandQuery, commandText, matchCommands} from './commands.js';
 import {BackgroundStatus} from './statusIndicator.js';
 import {getBoolean, getStrv, getString} from './settingsAccess.js';
 import {problemLogs, ProblemWatcher} from './problemWatcher.js';
@@ -27,7 +28,7 @@ import {redactSecrets} from './secretScanner.js';
 const PROMPT_EXPAND_MS = 240;
 const PROMPT_WIDTH = 720;
 const PROMPT_MAX_LINES = 7;
-const SKILL_SUGGESTIONS_HEIGHT = 168;
+const SKILL_SUGGESTIONS_HEIGHT = 300;
 const SKILL_SUGGESTIONS_GAP = 6;
 function verticalLayout() {
     return St.BoxLayout.find_property('orientation')
@@ -223,6 +224,10 @@ export default class GnomeAssistantExtension extends Extension {
         // Init AI View
         this._aiView = new AiView(this._settings);
         this._aiView.connect('external-opened', () => Main.overview.hide());
+        this._aiView.connect('preferences-requested', () => {
+            Main.overview.hide();
+            this.openPreferences();
+        });
         this._aiView.connect('attachments-changed', () => {
             this._syncPromptAttachments();
             this._queuePromptResize();
@@ -1015,9 +1020,15 @@ export default class GnomeAssistantExtension extends Extension {
         return Clutter.EVENT_STOP;
     }
 
+    // "/" or "$" at the start of the prompt lists commands (the agent's,
+    // skills included, and GNOME Assistant's); while their arguments are
+    // typed, the chosen command's hint stays visible.
     _updateSkillSuggestions() {
-        const query = /^\$([\w:-]*)$/.exec(this._promptEditor?.get_text() ?? '');
-        if (!query) {
+        const text = this._promptEditor?.get_text() ?? '';
+        const agentCommands = this._aiView?._nativeProfileCommands ?? [];
+        const query = commandQuery(text);
+        const using = query ? null : commandBeingUsed(text, agentCommands);
+        if (!query && !using?.input?.hint) {
             this._hideSkillSuggestions();
             return;
         }
@@ -1037,10 +1048,15 @@ export default class GnomeAssistantExtension extends Extension {
             Main.layoutManager.overviewGroup.add_child(this._skillMenu);
             this._promptBox.connect('notify::allocation', () => this._positionSkillSuggestions());
         }
+        const shown = query ? this._renderSkillSuggestions(query, agentCommands)
+            : this._renderCommandHint(using, text[0]);
+        if (!shown) {
+            this._hideSkillSuggestions();
+            return;
+        }
         this._skillMenu.show();
         this._positionSkillSuggestions();
-        this._skillFilter = query[1].toLowerCase();
-        this._renderSkillSuggestions();
+        this._fitSkillSuggestions();
     }
 
     _positionSkillSuggestions() {
@@ -1055,42 +1071,63 @@ export default class GnomeAssistantExtension extends Extension {
         this._skillMenu.set_width(width);
     }
 
-    _renderSkillSuggestions() {
+    // A row: the command and its argument hint, then its description.
+    _commandRow(command, text, {reactive = true} = {}) {
+        const content = new St.BoxLayout({...verticalLayout(), style_class: 'ai-skill-option-content', x_expand: true});
+        const title = new St.BoxLayout({style_class: 'ai-skill-option-title'});
+        title.add_child(new St.Label({text, style_class: 'ai-skill-option-name'}));
+        const hint = command.input?.hint;
+        if (typeof hint === 'string' && hint.trim()) {
+            const label = new St.Label({text: hint.trim(), style_class: 'ai-skill-option-hint', x_expand: true});
+            label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+            title.add_child(label);
+        }
+        content.add_child(title);
+        const description = typeof command.description === 'string' ? command.description.replace(/\s+/g, ' ').trim() : '';
+        if (description) {
+            const label = new St.Label({text: description, style_class: 'ai-skill-option-description', x_expand: true});
+            label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+            content.add_child(label);
+        }
+        if (!reactive) {
+            content.add_style_class_name('ai-skill-hint');
+            return content;
+        }
+        const button = new St.Button({
+            style_class: 'popup-menu-item ai-skill-option',
+            accessible_name: text,
+            track_hover: true,
+            x_expand: true,
+        });
+        button.set_child(content);
+        return button;
+    }
+
+    _renderSkillSuggestions({sigil, query}, agentCommands) {
+        this._skillRows.destroy_all_children();
+        this._skillSelection = -1;
+        this._skillMatches = matchCommands(availableCommands(agentCommands), query)
+            .map(command => ({...command, command: commandText(command, sigil)}));
+        // "/home/…" is more likely a path than a command: say nothing.
+        if (!this._skillMatches.length)
+            return false;
+        for (const match of this._skillMatches) {
+            const row = this._commandRow(match, match.command);
+            row.connect('clicked', () => this._completeSkillSuggestion(match.command));
+            this._skillRows.add_child(row);
+        }
+        return true;
+    }
+
+    _renderCommandHint(command, sigil) {
         this._skillRows.destroy_all_children();
         this._skillSelection = -1;
         this._skillMatches = [];
-        const query = this._skillFilter.replace(/^native:/, '');
-        const seen = new Set();
-        for (const skill of this._aiView?._nativeProfileCommands ?? []) {
-            if (typeof skill.name !== 'string' || !/^[\w-]+(?::[\w-]+)*$/.test(skill.name))
-                continue;
-            const command = '$' + skill.name;
-            if (seen.has(command) ||
-                !skill.name.toLowerCase().includes(query))
-                continue;
-            seen.add(command);
-            this._skillMatches.push({...skill, command});
-        }
-        this._skillMatches.sort((a, b) => a.name.localeCompare(b.name));
-        for (const {name, command} of this._skillMatches) {
-            const button = new St.Button({
-                style_class: 'popup-menu-item ai-skill-option',
-                accessible_name: name,
-                track_hover: true,
-                x_expand: true,
-            });
-            const row = new St.BoxLayout({style_class: 'ai-skill-option-content'});
-            const label = new St.Label({text: name, x_expand: true});
-            label.clutter_text.ellipsize = Pango.EllipsizeMode.END;
-            row.add_child(label);
-            button.set_child(row);
-            button.connect('clicked', () => this._completeSkillSuggestion(command));
-            this._skillRows.add_child(button);
-        }
-        if (!this._skillMatches.length) {
-            const text = 'No matching commands advertised by the agent.';
-            this._skillRows.add_child(new St.Label({text, style_class: 'ai-skill-empty'}));
-        }
+        this._skillRows.add_child(this._commandRow(command, commandText(command, sigil), {reactive: false}));
+        return true;
+    }
+
+    _fitSkillSuggestions() {
         const [, height] = this._skillRows.get_preferred_height(-1);
         const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
         this._skillMenu.height = Math.min(height + this._skillMenu.get_theme_node().get_vertical_padding(),

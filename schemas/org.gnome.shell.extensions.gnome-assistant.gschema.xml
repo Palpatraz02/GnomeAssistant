@@ -18,6 +18,11 @@
       <default>true</default>
       <summary>Let the assistant delegate independent work automatically</summary>
     </key>
+    <key name="web-research" type="b">
+      <default>true</default>
+      <summary>Research on the web</summary>
+      <description>Ask the agent to check facts online with its own web tools instead of answering from memory.</description>
+    </key>
     <key name="acp-profile" type="s">
       <default>""</default>
       <summary>Selected ACP connection ID</summary>

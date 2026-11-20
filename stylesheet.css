@@ -86,6 +86,13 @@
     max-width: 36em;
     font-weight: normal;
 }
+/* The accent colours of a default button, without the button style class:
+   newer Shell themes give buttons a fixed height, which cut the text off. */
+.ai-chat-bubble.ai-chat-bubble-user {
+    background-color: -st-accent-color;
+    color: -st-accent-fg-color;
+    border-radius: 18px;
+}
 .ai-message-header { spacing: 8px; }
 .ai-message-sender { font-size: 0.9em; font-weight: bold; }
 .ai-message-body, .ai-approval { spacing: 8px; }
@@ -131,9 +138,14 @@
 
 .ai-skill-menu { padding: 6px; min-width: 0; }
 .ai-skill-rows { spacing: 2px; }
-.ai-skill-option { padding: 10px 12px; border-radius: 8px; }
-.ai-skill-option-content { spacing: 12px; }
-.ai-skill-empty { padding: 10px 12px; font-size: 0.9em; }
+.ai-skill-option { padding: 8px 12px; border-radius: 8px; }
+.ai-skill-option-content { spacing: 2px; }
+.ai-skill-option-title { spacing: 8px; }
+.ai-skill-option-name { font-weight: bold; }
+.ai-skill-option-hint { font-family: monospace; font-size: 0.85em; color: rgba(127, 127, 127, 1); }
+.ai-skill-option-description { font-size: 0.85em; color: rgba(127, 127, 127, 1); }
+/* The chosen command's hint while its arguments are typed. */
+.ai-skill-hint { padding: 8px 12px; }
 
 .ai-message-list { padding: 0 4px; }
 .ai-message-quote { padding: 4px 12px; border-left: 3px solid -st-accent-color; }
@@ -278,3 +290,21 @@
 .ai-privacy-review-heading StIcon { color: -st-accent-color; }
 .ai-privacy-review-help { font-size: 0.9em; opacity: 0.8; }
 .ai-privacy-note { color: -st-accent-color; }
+
+/* Preferences button at the end of the options menu. */
+.ai-config-footer {
+    padding: 6px 12px 4px;
+}
+
+.ai-config-footer:hover,
+.ai-config-footer:focus {
+    background-color: transparent;
+}
+
+.ai-config-preferences {
+    padding: 6px 12px;
+}
+
+.ai-config-preferences StBoxLayout {
+    spacing: 8px;
+}

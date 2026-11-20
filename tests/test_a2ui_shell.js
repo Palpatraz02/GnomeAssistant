@@ -255,9 +255,9 @@ export default class extends Extension {
             const profiles = JSON.parse(settings.get_string('acp-profiles'));
             profiles[0].command += ' --no-tools';
             settings.set_string('acp-profiles',JSON.stringify(profiles));
-            await turn('@a2ui resource');
+            await turn('/a2ui resource');
             assert(view._a2uiViews.get('resource')?.view && view._visibleMessages.at(-1).text === '',
-                'Catalog fallback or manual @a2ui request failed without MCP');
+                'Catalog fallback or manual /a2ui request failed without MCP');
             await turn('files-acp');
             const fallbackFile=view._visibleMessages.at(-1);
             assert(fallbackFile.attachments?.[0].name==='fallback.csv' && fallbackFile.text==='',
@@ -563,7 +563,24 @@ export default class extends Extension {
         assert(option('engine-choice').currentValue==='deep' &&
             JSON.parse(settings.get_string('acp-config-values')).test['engine-choice']==='deep',
             'Rejected radio selection replaced the confirmed model');
-        view._run={};view._showAcpOptions();assert(!view._acpOptionsMenu,'Agent options can open while working');view._run=null;
+        // While working, the menu offers only Preferences: its last item, a button.
+        view._run={};view._showAcpOptions();await pause();
+        const busyItems=view._acpOptionsMenu?._getMenuItems()??[];
+        const preferencesButton=item=>all(item.actor??item).find(actor=>actor instanceof St.Button && actor.accessible_name==='Preferences');
+        assert(view._acpOptionsMenu?.isOpen && busyItems.length===1 && preferencesButton(busyItems[0]),
+            'Agent options can change while working, or Preferences is missing: '+busyItems.map(item=>item.label?.text));
+        view._acpOptionsMenu.close();await wait(()=>!view._acpOptionsMenu);view._run=null;
+        // Normally it comes last, after the agent's options, and asks to open Preferences.
+        view._showAcpOptions();await pause();
+        const items=view._acpOptionsMenu._getMenuItems();
+        assert(items.length>2 && items.at(-2) instanceof PopupMenu.PopupSeparatorMenuItem && preferencesButton(items.at(-1)),
+            'Preferences is not the last item of the options menu');
+        const menuShot=Gio.File.new_for_path(root+'/options-preferences.png').replace(null,false,Gio.FileCreateFlags.NONE,null);
+        await new Shell.Screenshot().screenshot(false,menuShot);menuShot.close(null);
+        let requested=0;const requestSignal=view.connect('preferences-requested',()=>requested++);
+        preferencesButton(items.at(-1)).emit('clicked',1);
+        await wait(()=>!view._acpOptionsMenu);view.disconnect(requestSignal);
+        assert(requested===1,'The Preferences button did not ask to open Preferences');
         await open('Thinking effort');
         print('ACP RADIO OPTIONS TEST PASSED');
     }
@@ -1064,6 +1081,8 @@ export default class extends Extension {
             await this.testProblemNotifications(assistant);
             await this.testWindowMenu(assistant);
             await this.testNewConversationKeepsDraft(assistant,click);
+            await this.testBubblesFitText(assistant);
+            await this.testCommandSuggestions(assistant);
             // Files copied in a file manager arrive as file URIs: Ctrl+V adds
             // them as chips (references, as the fixture agent is local).
             const clipboard=St.Clipboard.get_default();
@@ -1481,6 +1500,83 @@ export default class extends Extension {
             for(let i=0;i<40 && !assistant._promptEditor;i++)await pause();
             assistant._setSearchEntryText(draft);for(let i=0;i<4;i++)await pause();
         }
+    }
+
+    // "/" or "$" lists the agent's commands and skills (as advertised through
+    // ACP, with descriptions and argument hints) and GNOME Assistant's own.
+    async testCommandSuggestions(assistant) {
+        const view=assistant._aiView,draft=assistant._getSearchEntryText();
+        // The test agent advertises commands shaped like Claude's (with an
+        // argument hint) and Codex's skills (names starting with $).
+        for(let i=0;i<120 && !view._nativeProfileCommands.some(command=>command.name==='$imagegen');i++)await pause();
+        assert(view._nativeProfileCommands.some(command=>command.name==='$imagegen'),'The agent did not advertise its commands');
+        const type=async text=>{assistant._setSearchEntryText(text);for(let i=0;i<4;i++)await pause();};
+        const rows=()=>assistant._skillMenu?.visible ? assistant._skillRows.get_children() : [];
+        const texts=row=>row ? all(row).filter(actor=>actor instanceof St.Label).map(label=>label.text) : [];
+        try {
+            await type('/');
+            const names=rows().map(row=>texts(row)[0]);
+            assert(['/a2ui','/effort','/$imagegen','/native'].every(name=>names.includes(name)),
+                'The list lacks commands: '+names);
+            const effortRow=rows().find(row=>texts(row)[0]==='/effort');
+            assert(texts(effortRow).join('|')==="/effort|<low|medium|high>|Set the model's effort level",
+                'A row lacks its hint or description: '+texts(effortRow));
+            const {default:Shell}=await import('gi://Shell');
+            const shot=Gio.File.new_for_path(GLib.getenv('GNOME_ASSISTANT_TEST_ROOT')+'/command-suggestions.png').replace(null,false,Gio.FileCreateFlags.NONE,null);
+            await new Shell.Screenshot().screenshot(false,shot);shot.close(null);
+            await type('/eff');
+            assert(texts(rows()[0])[0]==='/effort','The best match is not first');
+            assistant._handleSkillSuggestionKey(Clutter.KEY_Tab,0);for(let i=0;i<4;i++)await pause();
+            assert(assistant._getSearchEntryText()==='/effort ','Tab did not complete the command');
+            // While its argument is typed, the hint stays, and Enter is left to send.
+            assert(rows().length===1 && texts(rows()[0]).includes('<low|medium|high>') && !assistant._skillMatches.length,
+                'The argument hint is not shown: '+rows().map(texts));
+            await type('$imag');
+            assert(texts(rows()[0])[0]==='$imagegen','A Codex skill is missing or its $ was doubled: '+rows().map(texts));
+            await type('/home/me/notes.txt');
+            assert(!rows().length,'A path opened the command list');
+            print('COMMAND SUGGESTIONS TEST PASSED');
+        } finally {
+            await type(draft);
+        }
+    }
+
+    // Every chat bubble is tall enough for its text, also after several
+    // turns, when the chat scrolls.
+    async testBubblesFitText(assistant) {
+        const view=assistant._aiView;
+        view._startNewConversation();await pause();
+        const prompts=["e quale' la punta piu alta della val d'ayas?",'in realta il castore fa parte di ayas',
+            'e il lyskamm?','quanto è alto il monte rosa?','grazie'];
+        for(const prompt of prompts) {
+            view.addMessage('You',prompt);
+            await view.generateResponse('markdown-reply '+prompt);
+            for(let i=0;i<3;i++)await pause();
+        }
+        for(let i=0;i<10;i++)await pause();
+        view._scrollView.get_vadjustment?.()?.set_value(0);for(let i=0;i<3;i++)await pause();
+        const {default:Shell}=await import('gi://Shell');
+        const bubblesShot=Gio.File.new_for_path(GLib.getenv('GNOME_ASSISTANT_TEST_ROOT')+'/chat-bubbles.png').replace(null,false,Gio.FileCreateFlags.NONE,null);
+        await new Shell.Screenshot().screenshot(false,bubblesShot);bubblesShot.close(null);
+        const problems=[];
+        for(const message of view._visibleMessages) {
+            const bubble=message.actor,node=bubble.get_theme_node();
+            const bottom=Math.max(...bubble.get_children().filter(child=>child.visible).map(child=>child.get_allocation_box().y2));
+            const room=bubble.height-node.get_padding(St.Side.BOTTOM);
+            if(bottom>room+1)
+                problems.push({sender:message.sender,text:message.text.slice(0,30),height:bubble.height,bottom,room,width:bubble.width,
+                    style:{max:node.get_max_height(),min:node.get_min_height(),fixed:node.get_height(),classes:bubble.style_class},
+                    children:bubble.get_children().filter(child=>child.visible).map(child=>child.get_allocation_box().get_height())});
+        }
+        assert(problems.length===0,'Bubbles are too short for their text: '+JSON.stringify(problems));
+        // Web research instructions follow their setting.
+        const echoed=async()=>{await view.generateResponse('instructions-echo');await pause();return JSON.parse(view._visibleMessages.at(-1).text);};
+        assert((await echoed()).web,'The agent was not asked to research on the web');
+        assistant._settings.set_boolean('web-research',false);
+        assert(!(await echoed()).web,'Web research instructions were sent while turned off');
+        assistant._settings.reset('web-research');
+        view._startNewConversation();await pause();
+        print('BUBBLE HEIGHT TEST PASSED');
     }
 
     // The New button starts over, but the message being written stays:

@@ -168,7 +168,10 @@ for line in sys.stdin:
         server = params['mcpServers'][0] if use_tools else None
         send(method='session/update', params={'sessionId': 'a2ui-test', 'update': {
             'sessionUpdate': 'available_commands_update',
-            'availableCommands': [{'name': 'native', 'description': 'Native command'}]}})
+            'availableCommands': [{'name': 'native', 'description': 'Native command'},
+                # Shaped like Claude Code's commands (argument hints) and Codex's skills ($names).
+                {'name': 'effort', 'description': "Set the model's effort level", 'input': {'hint': '<low|medium|high>'}},
+                {'name': '$imagegen', 'description': 'Generate or edit raster images'}]}})
         send(id=message['id'], result={'sessionId': 'a2ui-test', 'configOptions': config_options()})
     elif method == 'session/set_config_option':
         config_id, value = params['configId'], params['value']
@@ -337,6 +340,16 @@ for line in sys.stdin:
                 'sessionUpdate': 'tool_call_update', 'toolCallId': 'write-1', 'status': 'completed'}})
             text('\nCreated hello.txt.' if value == 'tool-between-spaced' else 'Created hello.txt.')
             text(' It contains hello world.')
+        elif value == 'instructions-echo':
+            # Which optional instructions arrived with the prompt.
+            texts = [block.get('text', '') for block in params['prompt'] if block['type'] == 'text']
+            text(json.dumps({'web': any('Research on the web' in t for t in texts)}))
+        elif value.startswith('markdown-reply'):
+            # A long formatted answer, as models write them.
+            text('No. La cima più alta è il **Polluce (Pollux)**, a **4.092 m**, sul confine con la Svizzera. '
+                 'Subito accanto c\'è il **Castore (Castor)**, a **4.223 m**, che di solito si cita con lui.\n\n'
+                 'Altre cime importanti:\n\n- **Breithorn occidentale**: 4.165 m\n- **Roccia Nera**: 4.075 m\n'
+                 '- **Castore**: 4.228 m\n\n1. Primo\n2. Secondo\n\nLe quote sono a memoria e possono variare.')
         elif value.startswith('context-echo'):
             # The written context blocks and the number of images that arrived.
             text(json.dumps({'prompt': value, 'images': sum(block['type'] == 'image' for block in params['prompt']),

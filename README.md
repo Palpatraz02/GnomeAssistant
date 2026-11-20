@@ -22,7 +22,8 @@ upstream [MIT license](LICENSE), with lerosua's copyright notice.
 - Streams replies, shows activity beneath messages, and displays approvals in chat.
 - Keeps working with the overview closed: a top-bar indicator and notifications
   report progress, finished replies, and approvals you can answer from the notification.
-- Provides a growing multiline prompt, attachment chips, and `$` command suggestions.
+- Provides a growing multiline prompt, attachment chips, and suggestions for the
+  agent's commands and skills as you type `/` or `$`.
 - Renders Markdown, selectable message text, image previews, and downloadable files.
 - Turns local file paths in replies into links, adds **Copy** and **Save as…** to
   code blocks, and shows file edits awaiting approval as diffs.
@@ -42,30 +43,74 @@ The [extension metadata](metadata.json) currently declares GNOME Shell **45, 46,
 47, 48, 49, and 51**. Recent native UI checks in this workspace run on Shell 51;
 the metadata list is not a claim that every version has been tested equally.
 
-For the extension and its Preferences/file dialogs, install:
+### Required
 
-- GJS and GNOME Shell’s normal introspection libraries.
-- GTK4 **4.10+** and libadwaita **1.4+**.
-- libsoup **3.0** and GdkPixbuf introspection support.
-- GLib’s `glib-compile-schemas` tool for installation from source.
-- An installed, authenticated ACP agent or adapter.
+- **GNOME Shell** with GJS (the extension runs inside it).
+- **GTK 4.10+** and **libadwaita 1.4+** with their introspection data, for
+  Preferences and the file dialog fallback.
+- **libsoup 3** and **GdkPixbuf** introspection data.
+- **xdg-desktop-portal** with a GNOME backend (`xdg-desktop-portal-gnome`), for
+  the Attach and Reference file pickers. GNOME installs it by default.
+- **`glib-compile-schemas`** (GLib), to install from source.
+- An installed, authenticated **ACP agent** or adapter (see below).
 
-Additional dependencies depend on the feature:
+### Optional, by feature
 
-| Feature | Dependency |
-| --- | --- |
-| Public HTTPS image previews | `curl` |
-| SSH connections | OpenSSH client and working noninteractive authentication |
-| Shared local folder access for an SSH agent | Python 3 |
-| Approved commands in a shared local folder | Bubblewrap (`bwrap`) and `timeout` |
-| Inline audio/video | GStreamer 1.0, GstApp introspection, and suitable codec plugins |
+Everything below is optional: a feature whose tool is missing is skipped or
+falls back, and the rest keeps working.
+
+| Feature | Needs | Without it |
+| --- | --- | --- |
+| Faster folder sending | GNU `tar` | A slower built-in archiver is used |
+| Blacking out secret text in screenshots (OCR) | `tesseract` with **English** language data (`eng`) | Only private windows are blacked out; Preferences shows OCR as unavailable |
+| SSH connections | OpenSSH client, with key-based (noninteractive) login | Only local agents |
+| Shared local folder for an SSH agent | Python 3 | Sharing a folder with an SSH agent fails with an error |
+| Approved commands in a shared local folder | Bubblewrap (`bwrap`) and `timeout` (coreutils) | Commands are refused, with a message asking for Bubblewrap |
+| Public HTTPS image previews | `curl` | The image is not previewed |
+| Inline audio and video | GStreamer 1.0 with GstApp introspection, plus codec plugins | The player shows “Playback unavailable” |
+| Application logs, logged errors (desktop and window context) | systemd journal (`journalctl`) | Left out |
+| Crash notifications and crash events | `systemd-coredump` (provides `coredumpctl` and the journal entries) | No crash notifications |
+| Out-of-memory notifications | Kernel messages in the journal; optionally `systemd-oomd` | Not reported |
+| Failed service notifications | systemd (user and system) | Not reported |
+| Device status: network | NetworkManager (`nmcli`) | Reported as unavailable |
+| Device status: audio | `pactl` (works with PipeWire's PulseAudio server) | Reported as unavailable |
+| Device status: Bluetooth | BlueZ | Reported as unavailable |
+| Device status: battery and power profile | UPower, and `power-profiles-daemon` (or `tuned-ppd`) | Reported as unavailable |
+| “Ask …” in the Files right-click menu | Nautilus 43+ (extension API 4); to build: a C compiler, `make`, `pkg-config` and the Nautilus extension headers; to install: administrator rights (`pkexec` or `sudo`) | No Files menu entry |
+
+### Package names
+
+| Need | Arch / CachyOS | Debian / Ubuntu | Fedora |
+| --- | --- | --- | --- |
+| GTK 4, libadwaita, libsoup 3, GdkPixbuf | `gtk4 libadwaita libsoup3 gdk-pixbuf2` | `gir1.2-gtk-4.0 gir1.2-adw-1 gir1.2-soup-3.0 gir1.2-gdkpixbuf-2.0` | `gtk4 libadwaita libsoup3 gdk-pixbuf2` |
+| File picker portal | `xdg-desktop-portal-gnome` | `xdg-desktop-portal-gnome` | `xdg-desktop-portal-gnome` |
+| GNU tar | `tar` | `tar` | `tar` |
+| OCR with English | `tesseract tesseract-data-eng` | `tesseract-ocr tesseract-ocr-eng` | `tesseract tesseract-langpack-eng` |
+| SSH client | `openssh` | `openssh-client` | `openssh-clients` |
+| Python 3 | `python` | `python3` | `python3` |
+| Bubblewrap | `bubblewrap` | `bubblewrap` | `bubblewrap` |
+| curl | `curl` | `curl` | `curl` |
+| GStreamer | `gstreamer gst-plugins-base gst-plugins-good` | `gir1.2-gstreamer-1.0 gir1.2-gst-plugins-base-1.0 gstreamer1.0-plugins-good` | `gstreamer1 gstreamer1-plugins-base gstreamer1-plugins-good` |
+| Crash reports | `systemd` (included) | `systemd-coredump` | `systemd` (included) |
+| NetworkManager | `networkmanager` | `network-manager` | `NetworkManager` |
+| `pactl` | `libpulse` | `pulseaudio-utils` | `pulseaudio-utils` |
+| BlueZ, UPower, power profiles | `bluez upower power-profiles-daemon` | `bluez upower power-profiles-daemon` | `bluez upower tuned-ppd` |
+| Building the Files extension | `base-devel nautilus` | `build-essential pkg-config libnautilus-extension-dev` | `gcc make pkgconf-pkg-config nautilus-devel` |
+
+For example, on Arch or CachyOS, OCR protection needs:
+
+```sh
+sudo pacman -S tesseract tesseract-data-eng
+```
+
+Only English OCR data is used; other installed languages are ignored.
 
 ## Install from source
 
 Run the following from this repository’s root for a local **copy installation**:
 
 ```sh
-gnome_assistant_dir="${XDG_DATA_HOME:-$HOME/.local/share}/gnome-shell/extensions/gnome-assistant@faby02"
+gnome_assistant_dir="${XDG_DATA_HOME:-$HOME/.local/share}/gnome-shell/extensions/gnome-assistant@palpatraz02"
 mkdir -p "$gnome_assistant_dir/schemas"
 cp ./*.js ./*.py ./*.svg metadata.json stylesheet.css README.md LICENSE "$gnome_assistant_dir/"
 cp -R docs nautilus "$gnome_assistant_dir/"
@@ -85,8 +130,8 @@ it. Disable the old `ai-search-assistant@lerosua` extension when upgrading.
 Log out and back in so Shell discovers the extension, then enable it:
 
 ```sh
-gnome-extensions enable gnome-assistant@faby02
-gnome-extensions prefs gnome-assistant@faby02
+gnome-extensions enable gnome-assistant@palpatraz02
+gnome-extensions prefs gnome-assistant@palpatraz02
 ```
 
 After updating loaded JavaScript or schemas on Wayland, log out and back in
@@ -148,8 +193,9 @@ a session. It reuses the connection and reconnects after unexpected exits.
 Changing connection or workspace prepares a fresh connection/session as needed.
 The selected agent can remain running while the overview is closed.
 
-The **Agent options** gear shows the agent’s advertised select settings using
-standard GNOME Shell menu items. The same settings appear as GTK/libadwaita
+The **Options** gear shows the agent’s advertised select settings using
+standard GNOME Shell menu items, and ends with a **Preferences** button that
+opens the extension’s settings. Agent settings can be changed between replies. The same settings appear as GTK/libadwaita
 controls under **Preferences › Agent › Agent configuration**. Model and thinking effort
 appear when advertised; permission modes and other choices depend on the agent.
 
@@ -438,11 +484,24 @@ they do not replace the agent’s own system configuration. Start a new chat aft
 changing instructions so earlier conversation context does not carry old guidance.
 
 GNOME Assistant has no separate skill directory or special skill registration.
-Configure skills in your agent. Advertised commands can be invoked through `$`;
-a skill that is not advertised can still be available to the agent through its
-own mechanisms. **Delegate automatically** adds a preference for independent
+Configure skills in your agent. Type `/` (or `$`) at the start of a message to see
+the commands the agent advertises through ACP (`available_commands_update`),
+with their descriptions and argument hints. Claude Code and Codex include their
+skills in this list (Codex names them with a `$`, such as `$imagegen`). The best
+matches come first; **Tab** completes, and the chosen command's argument hint
+stays visible while you type. Commands are sent the standard ACP way, as
+`/name` followed by the rest of the message, so this works with any ACP agent
+that advertises commands. GNOME Assistant's own `/a2ui` is listed with them.
+Agents do not advertise their tools, so tools are not suggested; a skill that is
+not advertised can still be available to the agent through its own mechanisms. **Delegate automatically** adds a preference for independent
 subtasks; actual subagent support and execution belong to the connected agent.
 Context compaction is also handled by the agent.
+
+**Research on the web** (Preferences › Agent, on by default) asks the agent to
+check facts online before answering when they are uncertain or change over time
+(news, prices, versions, schedules, figures), to cite its sources as links, and
+to say so when it answers from memory. GNOME Assistant does not search the web
+itself: the agent uses its own web tools, which some agents ask you to approve.
 
 ## Attachments, images, and media
 
@@ -513,7 +572,7 @@ streaming playlists are not supported. Missing codecs are reported inline.
 
 ## Interactive interfaces: A2UI
 
-Start a request with `@a2ui` to ask explicitly for an interactive interface.
+Start a request with `/a2ui` (or `$a2ui`) to ask explicitly for an interactive interface.
 The agent may also choose one when useful. Interfaces render directly in the
 overview using A2UI 1.0 and GNOME Assistant’s custom catalog,
 `urn:gnome-assistant:a2ui:catalog:1`.
@@ -577,7 +636,7 @@ memory database or global/workspace memory selector.
 Core checks, without a live model or API key:
 
 ```sh
-node --test tests/test_acp_config.mjs tests/test_a2ui.mjs tests/test_assistant_status.mjs tests/test_reply_actions.mjs tests/test_secret_scanner.mjs tests/test_problem_rules.mjs
+node --test tests/test_acp_config.mjs tests/test_a2ui.mjs tests/test_assistant_status.mjs tests/test_reply_actions.mjs tests/test_secret_scanner.mjs tests/test_problem_rules.mjs tests/test_commands.mjs
 node tests/test_mode_visibility.js
 node tests/test_desktop_context.js
 node tests/test_screen_capture.js

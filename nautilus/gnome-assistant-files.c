@@ -14,7 +14,7 @@
 #define ASSISTANT_PATH "/org/gnome/Shell/Extensions/GnomeAssistant"
 #define ASSISTANT_INTERFACE "org.gnome.Shell.Extensions.GnomeAssistant"
 #define SCHEMA_ID "org.gnome.shell.extensions.gnome-assistant"
-#define EXTENSION_UUID "gnome-assistant@faby02"
+#define EXTENSION_UUID "gnome-assistant@palpatraz02"
 #define DEFAULT_NAME "GNOME Assistant"
 #define MAX_NAME_LENGTH 40
 

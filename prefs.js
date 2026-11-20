@@ -72,6 +72,11 @@ export default class GnomeAssistantPreferences extends ExtensionPreferences {
             subtitle: 'Include a preference for delegating independent work when the connected agent supports it.',
             key: 'auto-delegate',
         });
+        this._addSwitchRow(group, settings, {
+            title: 'Research on the web',
+            subtitle: 'Ask the agent to check facts online, with sources, instead of answering from memory. Uses the agent’s own web tools; it may ask you to approve searches.',
+            key: 'web-research',
+        });
 
         const promptGroup = new Adw.PreferencesGroup({
             title: 'Assistant Instructions',

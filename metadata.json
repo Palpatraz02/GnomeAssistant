@@ -1,7 +1,7 @@
 {
     "name": "GNOME Assistant",
     "description": "Connect to an ACP agent from the GNOME Shell overview. Stream replies, work in a selected folder, and review action approvals.",
-    "uuid": "gnome-assistant@faby02",
+    "uuid": "gnome-assistant@palpatraz02",
     "shell-version": [
         "45",
         "46",

@@ -50,6 +50,8 @@ const VIEW_OUT_MS = 120;
 const VIEW_SLIDE_PX = 16;
 const PRIVACY_INSTRUCTIONS = 'GNOME Assistant removes secrets before content reaches you. Text such as "[redacted GitHub token]" or "[redacted password]" marks a secret that was replaced; it cannot be recovered. Black areas in screenshots hide private windows (such as password managers), notifications or secret-looking text. If a task really needs a secret, ask the user to make it available another way (for example, an environment variable or a file only they control) rather than to paste it into the chat.';
 const REFERENCE_INSTRUCTIONS = 'The user referenced local files or folders instead of uploading them, listed as resource links and "Referenced file" or "Referenced folder" lines with absolute paths. They are on the computer where you run. Read them with your tools when the request needs them; for a folder, look only at what is relevant. When the user asks for changes, edit the referenced files in place, within your permissions, and say which files you changed.';
+// GNOME Assistant does not search the web itself: agents have their own tools.
+const WEB_RESEARCH_INSTRUCTIONS = 'Research on the web: when an answer depends on facts you are not sure of, on details that change over time (news, prices, versions, schedules, opening hours, statistics, measurements such as heights or distances), or when the user asks you to check, search the web and read the sources with your own web tools before answering, instead of answering from memory. Do not offer to search later: search now. Prefer primary and reputable sources, and cross-check figures when sources disagree. Cite the pages you used as Markdown links. Questions about the user\'s own files, code or computer do not need the web. If you have no web tools or they are blocked, say that the answer comes from memory and may be inaccurate.';
 const DELEGATION_INSTRUCTIONS = 'You may use subagents automatically for substantial, independent read-only subtasks when parallel work would help. Give each subagent a clear scope, wait for relevant results, and combine them into one answer. Handle small or sequential tasks directly.';
 const MAX_HISTORY_SESSIONS = 60;
 const HISTORY_TITLE_CHARS = 96;
@@ -176,7 +178,7 @@ class MarkdownTable extends St.Widget {
 });
 
 export const AiView = GObject.registerClass({
-    Signals: {'external-opened': {}, 'attachments-changed': {}, 'attachment-added': {},
+    Signals: {'external-opened': {}, 'preferences-requested': {}, 'attachments-changed': {}, 'attachment-added': {},
         // File pickers are separate windows: the overview must step aside.
         'picker-opened': {}, 'picker-closed': {}, 'desktop-context-requested': {},
         // Progress for the top bar and notifications while the overview is
@@ -311,7 +313,7 @@ class AiView extends St.BoxLayout {
         });
         this._stopButton.set_child(new St.Icon({icon_name: 'process-stop-symbolic'}));
         this._stopButton.connect('clicked', () => this._stopRun());
-        this._agentOptionsButton = this._headerAction('emblem-system-symbolic', 'Agent options',
+        this._agentOptionsButton = this._headerAction('emblem-system-symbolic', 'Options',
             () => this._showAcpOptions());
         this._syncAcpOptions([]);
         this._attachButton = this._headerAction('mail-attachment-symbolic', 'Attach',
@@ -555,7 +557,7 @@ class AiView extends St.BoxLayout {
     _createMessageBubble(sender, isUser) {
         const side = isUser ? 'ai-chat-bubble-user' : 'ai-chat-bubble-agent';
         const bubble = new MessageBubble({
-            style_class: `message ai-chat-bubble ${side}${isUser ? ' button default' : ''}`,
+            style_class: `message ai-chat-bubble ${side}`,
             ...VERTICAL_LAYOUT,
             reactive: true,
             request_mode: Clutter.RequestMode.HEIGHT_FOR_WIDTH,
@@ -1022,9 +1024,8 @@ class AiView extends St.BoxLayout {
         run.message.renderCwd = localCwd;
         run.message.remote = remote;
         run.message.requestedImage = remote ? null : run.message.requestedImage;
-        const request = /^@a2ui(?:\s|$)/i.test(prompt)
-            ? 'Display an interactive A2UI interface for this request.\n' + prompt.replace(/^@a2ui\s*/i, '') : prompt;
-        const input = run.functionRequests ? run.functionRequests.map(request=>JSON.stringify(request)).join('\n') : a2uiEvent ? JSON.stringify(a2uiEvent) : nativeCommandInput(request, this._nativeProfileCommands);
+        // /name or $name: the agent's commands and skills, or GNOME Assistant's own (/a2ui).
+        const input = run.functionRequests ? run.functionRequests.map(request=>JSON.stringify(request)).join('\n') : a2uiEvent ? JSON.stringify(a2uiEvent) : nativeCommandInput(prompt, this._nativeProfileCommands);
         const resources = [];
         const files = run.silentFunctions ? [] : [...this._queuedFiles];
         const hasTools = client.agentCapabilities.mcpCapabilities?.http;
@@ -1147,6 +1148,7 @@ class AiView extends St.BoxLayout {
             assistantNameInstructions(this.assistantName),
             this.privacyEnabled ? PRIVACY_INSTRUCTIONS : '',
             this._getSettingBoolean('auto-delegate', true) ? DELEGATION_INSTRUCTIONS : '',
+            this._getSettingBoolean('web-research', true) ? WEB_RESEARCH_INSTRUCTIONS : '',
             'GNOME Assistant renders Markdown, public HTTPS image links, inline images, and embedded files.',
             attachmentInstructions(Boolean(hasTools)),
             streamed ? receivedAttachmentInstructions() : '',
@@ -1802,8 +1804,6 @@ class AiView extends St.BoxLayout {
     _syncAcpOptions(options) {
         this._acpOptionsMenu?.close();
         this._acpConfigOptions = Array.isArray(options) ? options : [];
-        this._agentOptionsButton.visible = this._acpConfigOptions.some(option =>
-            option.type === 'select');
         this._publishAcpConfigState();
     }
 
@@ -1889,8 +1889,8 @@ class AiView extends St.BoxLayout {
             this._acpOptionsMenu.close();
             return;
         }
-        if (this._run || this._configApplyPromise || !this._client || this._client.closed)
-            return;
+        // Agent options can change only between replies; Preferences always opens.
+        const configurable = !this._run && !this._configApplyPromise && this._client && !this._client.closed;
         const client = this._client;
         const sessionId = this._threadId;
         const profileId = activeProfile(this._settings)?.id;
@@ -1900,7 +1900,7 @@ class AiView extends St.BoxLayout {
         Main.uiGroup.add_child(menu.actor);
         const manager = new PopupMenu.PopupMenuManager(this._agentOptionsButton);
         manager.addMenu(menu);
-        for (const option of this._acpConfigOptions) {
+        for (const option of configurable ? this._acpConfigOptions : []) {
             if (option.type !== 'select')
                 continue;
             const choices = selectChoices(option);
@@ -1953,6 +1953,23 @@ class AiView extends St.BoxLayout {
                 });
             }
         }
+        // Last: a button to the extension's Preferences.
+        if (!menu.isEmpty())
+            menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+        const footer = new PopupMenu.PopupBaseMenuItem({reactive: false, can_focus: false,
+            style_class: 'ai-config-footer'});
+        const preferences = new St.Button({style_class: 'button ai-config-preferences', can_focus: true, x_expand: true,
+            accessible_name: 'Preferences'});
+        const content = new St.BoxLayout({x_align: Clutter.ActorAlign.CENTER});
+        content.add_child(new St.Icon({icon_name: 'preferences-system-symbolic', icon_size: 16}));
+        content.add_child(new St.Label({text: 'Preferences', y_align: Clutter.ActorAlign.CENTER}));
+        preferences.set_child(content);
+        preferences.connect('clicked', () => {
+            menu.close();
+            this.emit('preferences-requested');
+        });
+        footer.add_child(preferences);
+        menu.addMenuItem(footer);
         let destroyIdle = null;
         menu.connect('destroy', () => {
             if (destroyIdle)
@@ -3422,6 +3439,10 @@ class AiView extends St.BoxLayout {
     async _refreshHistoryView() {
         if (this._destroyed || !this._historyBox)
             return;
+        // Refreshes overlap (switching tabs, saving, deleting): only the
+        // latest may draw, or an older one would redraw the rows later, such
+        // as under a row's open menu.
+        const token = this._historyRefreshToken = Symbol('history refresh');
 
         this._clearChildren(this._historyBox);
 
@@ -3433,7 +3454,7 @@ class AiView extends St.BoxLayout {
         }
 
         const [entries, meta] = await Promise.all([this._loadMemoryEntriesAsync(), loadHistoryMeta()]);
-        if (this._destroyed || !this._historyBox)
+        if (this._destroyed || !this._historyBox || token !== this._historyRefreshToken)
             return;
 
         this._historyIndex = buildHistoryIndex(this._buildHistorySessions(entries), meta);

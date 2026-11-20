@@ -8,7 +8,7 @@ It is a custom native catalog, not the complete A2UI basic renderer.
 
 Agents can display native interactive interfaces directly in overview chat using
 [A2UI 1.0](https://github.com/a2ui-project/a2ui/blob/main/specification/v1_0/docs/a2ui_protocol.md).
-Start a message with `@a2ui` to request one explicitly. The agent can also choose
+Start a message with `/a2ui` (or `$a2ui`) to request one explicitly. The agent can also choose
 an interactive presentation when it helps answer your request.
 
 The GNOME catalog (`urn:gnome-assistant:a2ui:catalog:1`) supports text, symbolic
